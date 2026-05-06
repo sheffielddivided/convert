@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Energy Converter</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Aker BP Convert">
+  <meta name="theme-color" content="#000000">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f1eb;
+      --surface: #ffffff;
+      --accent: #ac145a;
+      --accent-light: #f5e6ee;
+      --text: #1a1a1a;
+      --muted: #6b6b6b;
+      --border: #d8d2c8;
+      --tab-inactive: #e8e3da;
+      --radius: 12px;
+      --mono: 'DM Mono', monospace;
+      --display: 'Lato', sans-serif;
+    }
+
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 32px;
+    }
+
+    /* Header */
+    header {
+      background: #000000;
+      padding: 14px 16px 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-app-label {
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      padding-left: 10px;
+      border-left: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* Tab bar */
+    .tabs {
+      display: flex;
+      gap: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px 0;
+      border: none;
+      background: var(--tab-inactive);
+      font-family: var(--display);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 10px 10px 0 0;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tab-btn:first-child { margin-right: 3px; }
+
+    .tab-btn.active {
+      background: var(--bg);
+      color: var(--accent);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Panels */
+    .panel {
+      display: none;
+      padding: 24px 16px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .panel.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Section label */
+    .section-label {
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    .section-label:first-of-type { margin-top: 0; }
+
+    /* Field rows */
+    .field {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.15s;
+    }
+
+    .field:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .field input {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      width: 100%;
+      -moz-appearance: textfield;
+    }
+
+    .field input::-webkit-outer-spin-button,
+    .field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .field input::placeholder { color: #c8c3ba; }
+
+    .field .unit-tag {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 500;
+      letter-spacing: 0.08em;
+    }
+
+    /* Currency section */
+    .currency-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* FX status */
+    .fx-status {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: right;
+      letter-spacing: 0.03em;
+    }
+
+    .fx-status.loaded { color: #2a9d5c; }
+    .fx-status.error  { color: #c0392b; }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1.5px dashed var(--border);
+      margin: 20px 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="header-logo">
+      <svg height="28" style="display:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 568 128">
+        <path d="M201.1 89.8h-46l-11.9 26.5h-9.8L173 29h10.5l39.6 87.3h-10.5l-11.5-26.5zm-22.9-51.7l-19.4 43.4h38.6l-19.2-43.4zM227.4 28.3h9v55.4l38.8-30.9h13.5l-31.1 24.1 33.5 39.5h-12l-28.3-33.6-14.3 10.9v22.7h-9l-.1-88.1z" fill="#6d6e6b"/>
+        <path d="M354.8 96.1c-3.7 11.2-13.2 22.3-34.2 22.3-26 0-34.6-18.2-34.6-33.8 0-17.7 10.9-33.7 34.6-33.7 16.4 0 35.8 7.1 35.8 35.9H295c0 13.2 9.4 24 25.5 24 15.2 0 22-5 25.2-14.7h9.1zm-7.5-16.2c-2.6-15.7-14.1-21.5-26.2-21.5-11.6 0-24.1 6-26.2 21.5h52.4zM365.3 52.8h9v14.6h.2c3.3-7.6 9.3-16.5 24.3-16.5 1.8 0 3.6.1 5.4.5v9.3c-2.7-.5-5.5-.7-8.3-.7-9.8 0-21.6 6-21.6 24.1v32.4h-9V52.8zM409.5 29.1h49.6c17.1 0 24.3 9.7 24.3 22 0 8.4-4.6 16.3-15 18.7v.2c11.5 1.7 18.5 10.1 18.5 21.4 0 18.2-15.4 24.9-28.9 24.9h-48.6V29.1zm9 37.9h35.8c12.2 0 20-3.9 20-15.5 0-10.6-7.1-14.1-17-14.1h-38.8V67zm0 41h38c11.7 0 20.5-4.7 20.5-16.6 0-12.6-7.8-16.1-18.3-16.1h-40.2V108zM494.6 29.1h47.1c13.5 0 26.3 6.7 26.3 25.2 0 16.5-10.9 25.4-30.3 25.4h-34v36.7h-9l-.1-87.3zm9.1 42.3h35c15.2 0 19.6-7 19.6-17.1 0-13.1-7.3-16.9-17.7-16.9h-36.8l-.1 34z" fill="#6d6e6b"/>
+        <linearGradient id="ca" gradientUnits="userSpaceOnUse" x1="95.178" y1="74.202" x2="118.788" y2="67.432" gradientTransform="matrix(1 0 0 -1 0 130)"><stop offset="0" stop-color="#ac6244"/><stop offset=".49" stop-color="#8d2700"/><stop offset="1" stop-color="#aa5e3f"/></linearGradient>
+        <path d="M119.8 53.5c.2-1.5.4-2.8.6-4v.1c-.7 4-4.4 1.8-5.9.8-7.7-5.1-19.5-10.1-17.1 3.5 2.2 12.7 18 18.3 17.8 21.1 2-6.8 3.5-13.8 4.5-20.8l.1-.7z" fill="url(#ca)"/>
+        <path d="M27.6 6.6c-.5.8.3 1.7 1.4 2.8 3.5-2.9.1-5.2-1.3-3l-.1.2zM24.2 31.4c-1.4-2.5-2.7-5.5-2.2-8.4-1.6 1.8-3 3.8-4 6-.5 1-.5 2.1 6.2 2.4zM15.4 43.1c-.3-2.3-2.5-3.5-3.2-2-.4.8-.2 2.6 3 3.9.2-.6.3-1.2.2-1.9z" fill="#54284e"/>
+        <linearGradient id="cb" gradientUnits="userSpaceOnUse" x1="-310.911" y1="-171.789" x2="-254.041" y2="-190.262" gradientTransform="scale(1 -1) rotate(-3.35 2355.292 -5724.007)"><stop offset="0" stop-color="#8e006d"/><stop offset=".14" stop-color="#d7006d"/><stop offset=".33" stop-color="#f391b6"/><stop offset=".62" stop-color="#ea0080"/><stop offset="1" stop-color="#8e006d"/></linearGradient>
+        <path d="M71.4 48c-1.8-2.2-3.9-4.1-6.4-5.5-11-6.8-29.8-10.9-37.7-11-1.2 0-2.2 0-3.1-.1-6.7-.3-6.7-1.4-6.2-2.4 1-2.2 2.4-4.3 4.1-6 4.8-5.1 10.9-6.9 15.7-8.2C44 13 54.5 7.1 45.3 2.3s-14.7-.6-15.7.8c-.8 1.1-1.4 2.3-2 3.5l.1-.2c1.5-2.2 4.8.1 1.3 3l-.2.1c-3.9 3.1-8.1 10.2-10.4 15.4-3.2 7.1-6.3 16.2-6.3 16.2.8-1.5 2.9-.3 3.2 2 .1.6 0 1.3-.2 1.9-.5 1.4-1.1 2.7-1.9 3.9-3.2 5.5 1.9 10.2 6.6 11.1 4.1.8 27.2-1.2 35.5-2.2 1.3-.2 2.2-.3 2.7-.4 3.4-.6 18.2-3 13.4-9.4z" fill="url(#cb)"/>
+        <linearGradient id="cc" gradientUnits="userSpaceOnUse" x1="1.764" y1="49.34" x2="17.5" y2="49.34" gradientTransform="matrix(1 0 0 -1 0 130)"><stop offset="0" stop-color="#003824"/><stop offset="1" stop-color="#00822c"/></linearGradient>
+        <path d="M3.2 87c2.9 2.2 7.8 1.4 14.3-.1C9.8 78.8 7.2 72.6 4.4 73c-1.5.2-2.2 4.2-2.6 6.7-.2 4.4.4 6.6 1.4 7.3z" fill="url(#cc)"/>
+        <linearGradient id="cd" gradientUnits="userSpaceOnUse" x1="-316.529" y1="-243.401" x2="-260.452" y2="-275.779" gradientTransform="scale(1 -1) rotate(-3.35 2355.292 -5724.007)"><stop offset="0" stop-color="#003824"/><stop offset=".51" stop-color="#109840"/><stop offset="1" stop-color="#00822c"/></linearGradient>
+        <path d="M5.3 102.5l-.7-.2c1.9 3.8 4.2 7.4 6.9 10.7 15.4 18.9 46.1 15.6 53.2 13.1s1.6-7.6-2.7-10.1c-2.5-1.5-9.4-4.1-18.3-9.2-12.6-.3-27.8-1.4-38.4-4.3z" fill="url(#cd)"/>
+        <linearGradient id="ce" gradientUnits="userSpaceOnUse" x1="-289.899" y1="-194.116" x2="-210.154" y2="-210.997" gradientTransform="scale(1 -1) rotate(-3.35 2355.292 -5724.007)"><stop offset=".16" stop-color="#8d2719"/><stop offset=".51" stop-color="#f5ad2c"/><stop offset=".93" stop-color="#d03c27"/></linearGradient>
+        <path d="M108.8 33.1c-11 .1-22 1.7-32.7 4.6-3.9 1-7.6 2.6-11 4.8v.1c2.4 1.4 4.6 3.3 6.3 5.5 4.8 6.4-10 8.8-13.5 9.5-.5.1-1.4.2-2.7.4-.2 1.5-.2 3 0 4.5.4 3.3-1.1 6.7-4.8 7.5s-20.7 5.3-20.8 9c.1 1.8.6 3.5 1.5 5 2.1-.4 4.4-.8 6.7-1.1 16.4-2.1 47.3-6.3 49.2.8 8.6-4 13.9-8.7 17.3-10.3 4-1.9 10 3.8 10.8 1.7.2-2.8-15.7-8.4-17.8-21.1-2.3-13.6 9.5-8.6 17.1-3.5 1.5 1 5.2 3.2 5.9-.8v-.1c.9-6.3.7-6.7 1.1-10.8.5-5-7.9-5.9-12.6-5.7z" fill="url(#ce)"/>
+        <linearGradient id="cf" gradientUnits="userSpaceOnUse" x1="1.482" y1="49.064" x2="83.137" y2="28.71" gradientTransform="matrix(1 0 0 -1 0 130)"><stop offset="0" stop-color="#005d33"/><stop offset=".46" stop-color="#009a33"/><stop offset=".87" stop-color="#005d33"/></linearGradient>
+        <path d="M37.9 82.8c-2.3.3-4.6.7-6.7 1.1-5.1 1-9.8 2.2-13.7 3-6.5 1.5-11.4 2.3-14.3.1-1-.8-1.6-3-1.4-7.3v.2C1.2 84-.1 92.6 0 96.3c.1 3.5.8 4.8 4.6 6l.7.2c10.6 2.9 25.8 4 38.5 4.3 10.9.2 19.9-.2 22.3-.6 5.1-.8 4.5-4.4 3.8-6.9-.8-2.7-1.4-4.8 2.6-5.8 5.1-1.3 14.3-5 14.8-8.7.1-.4 0-.8-.1-1.2-2-7.1-32.9-2.9-49.3-.8z" fill="url(#cf)"/>
+      </svg>
+      <span class="header-app-label">Convert</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('price')">Price</button>
+    <button class="tab-btn" onclick="switchTab('energy')">Energy</button>
+  </div>
+</header>
+
+<!-- PRICE PANEL -->
+<div id="panel-price" class="panel active">
+
+  <p class="section-label">Enter a value in any field</p>
+
+  <div class="field">
+    <label>USD per barrel oil equivalent</label>
+    <input id="inputUSDboe" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    <span class="unit-tag">USD / boe</span>
+  </div>
+
+  <div class="field">
+    <label>USD per MMBTU</label>
+    <input id="inputUSDmmbtu" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    <span class="unit-tag">USD / MMBTU</span>
+  </div>
+
+  <div class="field">
+    <label>EUR per MWh</label>
+    <input id="inputEURmwh" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    <span class="unit-tag">EUR / MWh</span>
+  </div>
+
+  <div class="field">
+    <label>GB pence per therm</label>
+    <input id="inputGBPtherm" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    <span class="unit-tag">p / th</span>
+  </div>
+
+  <hr class="divider">
+  <p class="section-label">Currency rates</p>
+
+  <div class="currency-grid">
+    <div class="field">
+      <label>EUR / USD</label>
+      <input id="inputEURUSD" type="number" inputmode="decimal" value="1.1"
+        oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    </div>
+    <div class="field">
+      <label>GBP / USD</label>
+      <input id="inputGBPUSD" type="number" inputmode="decimal" value="1.3"
+        oninput="priceConverter(this.id,this.value)" onchange="priceConverter(this.id,this.value)">
+    </div>
+  </div>
+  <p class="fx-status" id="fxStatus">Fetching live rates…</p>
+
+</div>
+
+<!-- ENERGY PANEL -->
+<div id="panel-energy" class="panel">
+
+  <p class="section-label">Enter a value in any field</p>
+
+  <div class="field">
+    <label>Barrels oil equivalent</label>
+    <input id="inputBoe" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="weightConverter(this.id,this.value)" onchange="weightConverter(this.id,this.value)">
+    <span class="unit-tag">boe</span>
+  </div>
+
+  <div class="field">
+    <label>Standard cubic metres natural gas</label>
+    <input id="inputSM3" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="weightConverter(this.id,this.value)" onchange="weightConverter(this.id,this.value)">
+    <span class="unit-tag">Sm³</span>
+  </div>
+
+  <div class="field">
+    <label>Megawatt hours</label>
+    <input id="inputMWh" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="weightConverter(this.id,this.value)" onchange="weightConverter(this.id,this.value)">
+    <span class="unit-tag">MWh</span>
+  </div>
+
+  <div class="field">
+    <label>Standard cubic feet</label>
+    <input id="inputSCF" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="weightConverter(this.id,this.value)" onchange="weightConverter(this.id,this.value)">
+    <span class="unit-tag">scf</span>
+  </div>
+
+  <div class="field">
+    <label>Million BTU</label>
+    <input id="inputMMbtu" type="number" inputmode="decimal" placeholder="0.00"
+      oninput="weightConverter(this.id,this.value)" onchange="weightConverter(this.id,this.value)">
+    <span class="unit-tag">MMBTU</span>
+  </div>
+
+</div>
+
+<script>
+  /* ── Tab switching ─────────────────────────────────────────── */
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) =>
+      b.classList.toggle('active', (i === 0) === (tab === 'price'))
+    );
+    document.getElementById('panel-price').classList.toggle('active', tab === 'price');
+    document.getElementById('panel-energy').classList.toggle('active', tab === 'energy');
+  }
+
+  /* ── Live FX rates (Norges Bank) ───────────────────────────── */
+  const NB = 'https://data.norges-bank.no/api/data/EXR/B.{}.NOK.SP?format=sdmx-json&lastNObservations=1&locale=en';
+  function nbRate(data) {
+    return parseFloat(data.data.dataSets[0].series['0:0:0:0'].observations['0'][0]);
+  }
+
+  async function fetchFX() {
+    const statusEl = document.getElementById('fxStatus');
+    try {
+      const [usdRes, eurRes, gbpRes] = await Promise.all([
+        fetch(NB.replace('{}','USD')), fetch(NB.replace('{}','EUR')), fetch(NB.replace('{}','GBP'))
+      ]);
+      const [usd, eur, gbp] = await Promise.all([usdRes.json(), eurRes.json(), gbpRes.json()]);
+      const usdNok = nbRate(usd), eurNok = nbRate(eur), gbpNok = nbRate(gbp);
+      document.getElementById('inputEURUSD').value = (eurNok / usdNok).toFixed(4);
+      document.getElementById('inputGBPUSD').value = (gbpNok / usdNok).toFixed(4);
+      statusEl.textContent = 'Live rates from Norges Bank ✓';
+      statusEl.className = 'fx-status loaded';
+    } catch(e) {
+      statusEl.textContent = 'Could not fetch live rates';
+      statusEl.className = 'fx-status error';
+    }
+  }
+  fetchFX();
+
+  /* ── Price converter ───────────────────────────────────────── */
+  const P = {
+    boePerSM3: 0.006293, mmbuPerSM3: 0.037913,
+    mjPerSM3: 40, mjPerMWh: 3.6,
+    pencePerGBP: 100, thermPerMMbtu: 10
+  };
+
+  function priceConverter(sourceprice, valPrice) {
+    valPrice = parseFloat(valPrice);
+    if (isNaN(valPrice)) return;
+    const eurUsd = parseFloat(document.getElementById('inputEURUSD').value);
+    const gbpUsd = parseFloat(document.getElementById('inputGBPUSD').value);
+    const mwhPerSM3  = P.mjPerSM3 / P.mjPerMWh / 1000;
+    const mmbuPerBoe = P.mmbuPerSM3 / P.boePerSM3;
+
+    function set(id, val) {
+      if (id !== sourceprice) document.getElementById(id).value = val.toFixed(2);
+    }
+
+    function usdMmbtuToAll(usdMmbtu) {
+      set('inputUSDmmbtu', usdMmbtu);
+      set('inputUSDboe',   usdMmbtu * mmbuPerBoe);
+      set('inputEURmwh',   usdMmbtu / eurUsd * P.mmbuPerSM3 / mwhPerSM3);
+      set('inputGBPtherm', usdMmbtu / gbpUsd * P.thermPerMMbtu);
+    }
+
+    if (sourceprice === 'inputUSDboe')   usdMmbtuToAll(valPrice / mmbuPerBoe);
+    if (sourceprice === 'inputUSDmmbtu') usdMmbtuToAll(valPrice);
+    if (sourceprice === 'inputEURmwh')   usdMmbtuToAll(valPrice * eurUsd * mwhPerSM3 / P.mmbuPerSM3);
+    if (sourceprice === 'inputGBPtherm') usdMmbtuToAll(valPrice * gbpUsd / P.thermPerMMbtu);
+    if (sourceprice === 'inputEURUSD' || sourceprice === 'inputGBPUSD') {
+      const boe = parseFloat(document.getElementById('inputUSDboe').value);
+      if (!isNaN(boe) && boe !== 0) usdMmbtuToAll(boe / mmbuPerBoe);
+    }
+  }
+
+  /* ── Energy / weight converter ─────────────────────────────── */
+  const C = {
+    boePerSM3: 0.006293, mjPerSM3: 40,
+    scfPerSM3: 35.315, mmbuPerSM3: 0.037913, mjPerMWh: 3.6
+  };
+
+  function weightConverter(source, valNum) {
+    valNum = parseFloat(valNum);
+    if (isNaN(valNum)) return;
+    const mwhPerSM3 = C.mjPerSM3 / C.mjPerMWh / 1000;
+    const sm3 = source === 'inputBoe'   ? valNum / C.boePerSM3 :
+                source === 'inputSM3'   ? valNum :
+                source === 'inputMWh'   ? valNum / mwhPerSM3 :
+                source === 'inputSCF'   ? valNum / C.scfPerSM3 :
+                source === 'inputMMbtu' ? valNum / C.mmbuPerSM3 : NaN;
+    if (isNaN(sm3)) return;
+    const ws = (id, val) => { if (id !== source) document.getElementById(id).value = val.toFixed(2); };
+    ws('inputBoe',   sm3 * C.boePerSM3);
+    ws('inputSM3',   sm3);
+    ws('inputMWh',   sm3 * mwhPerSM3);
+    ws('inputSCF',   sm3 * C.scfPerSM3);
+    ws('inputMMbtu', sm3 * C.mmbuPerSM3);
+  }
+</script>
+</body>
+</html>
