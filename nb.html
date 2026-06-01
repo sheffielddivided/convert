@@ -77,13 +77,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .press-release-link .prl-title{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .press-release-link .prl-date{font-size:11px;color:var(--text2);margin-top:3px}
 .press-release-link .prl-arrow{color:var(--text2);font-size:18px;flex-shrink:0}
-.web-modal-overlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.85);display:none;flex-direction:column;animation:fadeModal .25s ease}
-.web-modal-overlay.show{display:flex}
-.web-modal-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);padding-top:calc(env(safe-area-inset-top,12px) + 8px);flex-shrink:0}
-.web-modal-bar .wm-title{font-size:14px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 12px}
-.web-modal-bar .wm-close{width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.web-modal-bar .wm-open{font-size:12px;color:var(--accent2);background:none;border:none;cursor:pointer;font-family:inherit;flex-shrink:0}
-.web-modal-frame{flex:1;border:none;width:100%;background:#fff}
 </style>
 </head>
 <body>
@@ -121,15 +114,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
     <div class="chart-container"><canvas id="histChart"></canvas></div>
     <div class="chart-stats" id="chartStats"></div>
   </div>
-</div>
-
-<div class="web-modal-overlay" id="webModal">
-  <div class="web-modal-bar">
-    <button class="wm-close" onclick="closeWebModal()">&#x2715;</button>
-    <span class="wm-title" id="webModalTitle">Press Release</span>
-    <button class="wm-open" onclick="openInBrowser()">Open &#x2197;</button>
-  </div>
-  <iframe class="web-modal-frame" id="webModalFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
 </div>
 
 <div class="tab-bar">
@@ -507,27 +491,6 @@ document.getElementById('chartModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-// ===== WEB MODAL (for press releases) =====
-var currentWebUrl = '';
-
-function openWebModal(url, title) {
-  currentWebUrl = url;
-  document.getElementById('webModalTitle').textContent = title || 'Press Release';
-  document.getElementById('webModalFrame').src = url;
-  document.getElementById('webModal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeWebModal() {
-  document.getElementById('webModal').classList.remove('show');
-  document.getElementById('webModalFrame').src = '';
-  document.body.style.overflow = '';
-}
-
-function openInBrowser() {
-  if (currentWebUrl) window.open(currentWebUrl, '_blank');
-}
-
 // ===== PRESS RELEASE LOADER =====
 async function loadPolicyPressRelease() {
   var placeholder = document.getElementById('policyPressRelease');
@@ -587,18 +550,15 @@ async function loadPolicyPressRelease() {
       dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    var safeLink = link.replace(/'/g, "\\'");
-    var safeTitle = title.replace(/'/g, "\\'");
-
     placeholder.innerHTML =
-      '<div class="press-release-link" onclick="openWebModal(\'' + safeLink + '\', \'' + safeTitle + '\')">' +
+      '<a class="press-release-link" href="' + link + '" target="_blank" rel="noopener noreferrer">' +
       '<span class="prl-icon">&#x1F4F0;</span>' +
       '<div class="prl-text">' +
       '<div class="prl-title">' + title + '</div>' +
       (dateStr ? '<div class="prl-date">' + dateStr + '</div>' : '') +
       '</div>' +
-      '<span class="prl-arrow">&#x203A;</span>' +
-      '</div>';
+      '<span class="prl-arrow">&#x2197;</span>' +
+      '</a>';
   } catch(e) {
     placeholder.innerHTML = '';
   }
