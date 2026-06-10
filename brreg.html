@@ -154,6 +154,8 @@
       color: #64748b; font-size: 0.83rem;
     }
     .role-person { font-weight: 500; font-size: 0.92rem; flex: 1; }
+    .birth-year { font-weight: 400; color: #94a3b8; font-size: 0.85rem; }
+    .badge-ansatt { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; font-weight: 600; }
     .role-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
     .search-link {
       display: inline-flex; align-items: center; gap: 0.25rem;
@@ -424,11 +426,17 @@
             const n = rolle.person.navn;
             personNavn = [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
           }
+          const fodselsaar = rolle.person?.fodselsdato?.slice(0, 4) ?? null;
+          const ansattvalgt = (rolle.valgtAv?.kode ?? "").toUpperCase() === "ANSATTE";
+          const navnMedAar = personNavn
+            ? personNavn + (fodselsaar ? ` <span class="birth-year">(${esc(fodselsaar)})</span>` : "")
+              + (ansattvalgt ? ' <span class="badge badge-ansatt" title="Valgt av ansatte">Ansattvalgt</span>' : "")
+            : esc(rolle.enhet?.navn ?? "–");
           const visNavn = personNavn ?? rolle.enhet?.navn ?? "–";
           const btns = personNavn ? searchButtons(personNavn) : "";
           html += `<div class="role-item">
             <span class="role-type">${esc(rolleType)}</span>
-            <span class="role-person">${esc(visNavn)}</span>
+            <span class="role-person">${navnMedAar}</span>
             <span class="role-actions">${btns}</span>
           </div>`;
         });
