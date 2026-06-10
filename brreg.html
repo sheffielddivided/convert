@@ -226,6 +226,10 @@
 <script>
   const API = "https://data.brreg.no/enhetsregisteret/api";
 
+  // Sett inn URL-en til din Cloudflare Worker etter deploy, f.eks.:
+  // const REGNSKAP_PROXY = "https://regnskap-proxy.ditt-navn.workers.dev";
+  const REGNSKAP_PROXY = "";
+
   document.getElementById("searchInput").addEventListener("keydown", e => {
     if (e.key === "Enter") doSearch();
   });
@@ -453,9 +457,10 @@
   }
 
   async function loadRegnskap(orgnr) {
+    if (!REGNSKAP_PROXY) return;
     try {
       const res = await fetch(
-        `https://data.brreg.no/regnskapsregisteret/regnskap/${orgnr}?regnskapstype=SELSKAP`,
+        `${REGNSKAP_PROXY}/${orgnr}?regnskapstype=SELSKAP`,
         { headers: { accept: "application/json" } }
       );
       if (!res.ok) return;
