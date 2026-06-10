@@ -9,206 +9,200 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f2f5;
+      background: #eef1f6;
       color: #1a1a2e;
       margin: 0;
-      padding: 2rem 1rem;
+      padding: 2rem 1rem 4rem;
       min-height: 100vh;
     }
 
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-    }
+    .container { max-width: 780px; margin: 0 auto; }
 
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-      color: #1a1a2e;
-    }
-
-    .subtitle {
-      color: #666;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .search-row {
+    /* ── Header ── */
+    .page-header {
       display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.3rem;
     }
-
-    #searchInput {
-      flex: 1;
-      padding: 0.65rem 0.9rem;
-      font-size: 1rem;
-      border: 1.5px solid #ccc;
-      border-radius: 8px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    #searchInput:focus { border-color: #2563eb; }
-
-    button.primary {
-      padding: 0.65rem 1.2rem;
+    .page-header .logo {
+      width: 36px; height: 36px;
       background: #2563eb;
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.15s;
-      white-space: nowrap;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
+    .page-header .logo svg { width: 20px; height: 20px; fill: #fff; }
+    h1 { font-size: 1.55rem; font-weight: 800; margin: 0; color: #1e293b; }
+    .subtitle { color: #64748b; font-size: 0.88rem; margin: 0 0 1.5rem 52px; }
 
+    /* ── Search ── */
+    .search-row { display: flex; gap: 0.5rem; margin-bottom: 1.75rem; }
+    #searchInput {
+      flex: 1; padding: 0.7rem 1rem; font-size: 1rem;
+      border: 1.5px solid #cbd5e1; border-radius: 10px;
+      outline: none; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #searchInput:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    button.primary {
+      padding: 0.7rem 1.4rem; background: #2563eb; color: #fff;
+      font-size: 1rem; font-weight: 600; border: none; border-radius: 10px;
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      white-space: nowrap; box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+    }
     button.primary:hover { background: #1d4ed8; }
-    button.primary:disabled { background: #93c5fd; cursor: default; }
+    button.primary:active { transform: scale(0.97); }
+    button.primary:disabled { background: #93c5fd; box-shadow: none; cursor: default; }
 
+    /* ── Cards ── */
     .card {
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      padding: 1.25rem 1.5rem;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
       margin-bottom: 1.25rem;
+      overflow: hidden;
     }
-
-    .card h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #555;
-      margin: 0 0 1rem;
+    .card-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.9rem 1.4rem;
+      border-bottom: 1px solid #f1f5f9;
+      background: #f8fafc;
     }
-
-    .field-row {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      margin-bottom: 0.6rem;
-    }
-
-    .field-label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #888;
-      width: 160px;
+    .card-header .card-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
     }
+    .card-icon svg { width: 15px; height: 15px; }
+    .card-icon.blue   { background: #dbeafe; } .card-icon.blue svg   { fill: #2563eb; }
+    .card-icon.violet { background: #ede9fe; } .card-icon.violet svg { fill: #7c3aed; }
+    .card-icon.green  { background: #dcfce7; } .card-icon.green svg  { fill: #15803d; }
+    .card-icon.amber  { background: #fef3c7; } .card-icon.amber svg  { fill: #b45309; }
+    .card h2 {
+      font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #475569; margin: 0;
+    }
+    .card-body { padding: 1.1rem 1.4rem; }
 
-    .field-value {
-      font-size: 0.97rem;
-      flex: 1;
-      word-break: break-word;
+    /* ── Field rows ── */
+    .field-row {
+      display: flex; align-items: baseline; gap: 0.5rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #f1f5f9;
     }
+    .field-row:last-child { border-bottom: none; }
+    .field-label {
+      font-size: 0.75rem; font-weight: 600; color: #94a3b8;
+      width: 155px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      padding-top: 0.1rem;
+    }
+    .field-value { font-size: 0.95rem; flex: 1; word-break: break-word; line-height: 1.5; }
 
     .copy-btn {
-      padding: 0.2rem 0.55rem;
-      font-size: 0.75rem;
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
-      border-radius: 5px;
-      cursor: pointer;
-      color: #475569;
-      transition: background 0.1s, color 0.1s;
-      flex-shrink: 0;
+      padding: 0.18rem 0.5rem; font-size: 0.72rem;
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 5px; cursor: pointer; color: #64748b;
+      transition: background 0.1s, color 0.1s; flex-shrink: 0;
     }
-
     .copy-btn:hover { background: #e2e8f0; color: #1e293b; }
     .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
 
-    .results-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
+    /* ── Results list ── */
+    .results-list { list-style: none; margin: 0; padding: 0; }
     .results-list li {
-      padding: 0.75rem 0.9rem;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 0.8rem 1rem; cursor: pointer;
       transition: background 0.1s;
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
+      display: flex; flex-direction: column; gap: 0.15rem;
     }
-
     .results-list li:hover { background: #f0f7ff; }
-    .results-list li + li { border-top: 1px solid #f0f0f0; }
+    .results-list li + li { border-top: 1px solid #f1f5f9; }
+    .result-name { font-weight: 600; font-size: 0.96rem; }
+    .result-orgnr { font-size: 0.82rem; color: #64748b; }
 
-    .result-name { font-weight: 600; font-size: 0.97rem; }
-    .result-orgnr { font-size: 0.82rem; color: #666; }
-
+    /* ── Messages ── */
     .msg {
-      padding: 0.8rem 1rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      margin-bottom: 1.25rem;
+      padding: 0.75rem 1rem; border-radius: 9px;
+      font-size: 0.9rem; margin-bottom: 1.25rem;
     }
-
-    .msg.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .msg.info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
     .msg.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .msg.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
-    .roles-group { margin-bottom: 1rem; }
+    /* ── Roles ── */
+    .roles-group { margin-bottom: 1.1rem; }
     .roles-group:last-child { margin-bottom: 0; }
-
     .roles-group-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #2563eb;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.4rem;
+      font-size: 0.75rem; font-weight: 700; color: #2563eb;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 0.35rem; padding-bottom: 0.25rem;
+      border-bottom: 2px solid #dbeafe;
     }
-
     .role-item {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.3rem 0;
-      border-bottom: 1px solid #f3f4f6;
-      font-size: 0.92rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #f1f5f9;
     }
-
     .role-item:last-child { border-bottom: none; }
-
     .role-type {
-      width: 180px;
-      flex-shrink: 0;
-      color: #555;
-      font-size: 0.85rem;
+      width: 175px; flex-shrink: 0;
+      color: #64748b; font-size: 0.83rem;
     }
+    .role-person { font-weight: 500; font-size: 0.92rem; flex: 1; }
+    .role-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
+    .search-link {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.18rem 0.5rem; font-size: 0.71rem; font-weight: 600;
+      border-radius: 5px; text-decoration: none; border: 1px solid;
+      transition: background 0.1s, color 0.1s; white-space: nowrap;
+      line-height: 1.4;
+    }
+    .search-link.link-1881   { background: #fef9f0; border-color: #fed7aa; color: #9a3412; }
+    .search-link.link-1881:hover   { background: #fed7aa; }
+    .search-link.link-li     { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .search-link.link-li:hover     { background: #bfdbfe; }
+    .search-link.link-proff  { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .search-link.link-proff:hover  { background: #bbf7d0; }
 
-    .role-person { font-weight: 500; }
-
-    .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid #93c5fd;
-      border-top-color: #2563eb;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 600;
+      padding: 0.1rem 0.45rem; border-radius: 4px; margin-left: 0.4rem;
       vertical-align: middle;
-      margin-right: 0.4rem;
     }
+    .badge-green  { background: #dcfce7; color: #15803d; }
+    .badge-yellow { background: #fef9c3; color: #854d0e; }
+    .badge-red    { background: #fee2e2; color: #991b1b; }
 
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 17px; height: 17px;
+      border: 2px solid #bfdbfe; border-top-color: #2563eb;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 0.4rem;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     #status { margin-bottom: 0.75rem; }
-
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>BRREG-oppslag</h1>
+
+  <div class="page-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>
+      </svg>
+    </div>
+    <h1>BRREG-oppslag</h1>
+  </div>
   <p class="subtitle">Søk på organisasjonsnummer (9 siffer) eller selskapsnavn</p>
 
   <div class="search-row">
@@ -218,47 +212,70 @@
 
   <div id="status"></div>
   <div id="resultsArea"></div>
-  <div id="companyCard" class="hidden"></div>
-  <div id="rolesCard" class="hidden"></div>
-  <div id="regnskapCard" class="card hidden"></div>
+
+  <!-- Selskapsdata -->
+  <div id="companyCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon blue">
+        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+      </div>
+      <h2>Selskapsdata</h2>
+    </div>
+    <div class="card-body" id="companyCardBody"></div>
+  </div>
+
+  <!-- Roller -->
+  <div id="rolesCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon violet">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <h2>Roller / personer</h2>
+    </div>
+    <div class="card-body" id="rolesCardBody"></div>
+  </div>
+
+  <!-- Regnskap -->
+  <div id="regnskapCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon green">
+        <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <h2>Regnskap (siste tilgjengelige)</h2>
+    </div>
+    <div class="card-body" id="regnskapCardBody"></div>
+  </div>
+
 </div>
 
 <script>
   const API = "https://data.brreg.no/enhetsregisteret/api";
-
   const REGNSKAP_PROXY = "https://regnskap-proxy.batil-kjekken.workers.dev";
 
   document.getElementById("searchInput").addEventListener("keydown", e => {
     if (e.key === "Enter") doSearch();
   });
 
-  function isOrgNr(q) {
-    return /^[\d\s]+$/.test(q);
-  }
-
-  function normalizeOrgNr(q) {
-    return q.replace(/\s/g, "");
-  }
-
-  function setStatus(html) {
-    document.getElementById("status").innerHTML = html || "";
-  }
+  function isOrgNr(q) { return /^[\d\s]+$/.test(q); }
+  function normalizeOrgNr(q) { return q.replace(/\s/g, ""); }
+  function setStatus(html) { document.getElementById("status").innerHTML = html || ""; }
 
   function clearResults() {
     document.getElementById("resultsArea").innerHTML = "";
-    document.getElementById("companyCard").classList.add("hidden");
-    document.getElementById("rolesCard").classList.add("hidden");
-    document.getElementById("regnskapCard").classList.add("hidden");
+    ["companyCard","rolesCard","regnskapCard"].forEach(id =>
+      document.getElementById(id).classList.add("hidden")
+    );
+    document.getElementById("companyCardBody").innerHTML = "";
+    document.getElementById("rolesCardBody").innerHTML = "";
+    document.getElementById("regnskapCardBody").innerHTML = "";
   }
 
   async function doSearch() {
     const raw = document.getElementById("searchInput").value.trim();
     if (!raw) return;
-
     clearResults();
     setStatus('<span class="spinner"></span> Søker…');
     document.getElementById("searchBtn").disabled = true;
-
     try {
       if (isOrgNr(raw)) {
         const orgnr = normalizeOrgNr(raw);
@@ -271,7 +288,7 @@
         await searchByName(raw);
       }
     } catch (err) {
-      setStatus(`<div class="msg error">Feil ved oppslag: ${err.message}</div>`);
+      setStatus(`<div class="msg error">Feil ved oppslag: ${esc(err.message)}</div>`);
     } finally {
       document.getElementById("searchBtn").disabled = false;
     }
@@ -284,48 +301,29 @@
       return;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const enhet = await res.json();
     setStatus("");
-    await showCompany(enhet);
+    await showCompany(await res.json());
   }
 
   async function searchByName(name) {
-    const url = `${API}/enheter?navn=${encodeURIComponent(name)}&size=6`;
-    const res = await fetch(url);
+    const res = await fetch(`${API}/enheter?navn=${encodeURIComponent(name)}&size=6`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
     const enheter = data._embedded?.enheter ?? [];
     const total = data.page?.totalElements ?? 0;
-
-    if (total === 0) {
-      setStatus('<div class="msg warning">Ingen treff på dette søket.</div>');
-      return;
-    }
-
-    if (total === 1 || enheter.length === 1) {
-      setStatus("");
-      await showCompany(enheter[0]);
-      return;
-    }
-
+    if (total === 0) { setStatus('<div class="msg warning">Ingen treff på dette søket.</div>'); return; }
+    if (total === 1 || enheter.length === 1) { setStatus(""); await showCompany(enheter[0]); return; }
     setStatus("");
     showResultList(enheter, total);
   }
 
   function showResultList(enheter, total) {
     const area = document.getElementById("resultsArea");
-    let html = '<div class="card">';
-    html += '<h2>Velg selskap</h2>';
-
-    if (total >= 6) {
-      html += '<div class="msg info" style="margin-bottom:0.9rem">Søket ga flere treff enn det som vises. Gjør søkekriteriene mer presise for å snevre inn resultatet.</div>';
-    }
-
-    const visible = enheter.slice(0, 5);
+    let html = '<div class="card"><div class="card-header"><div class="card-icon blue"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div><h2>Velg selskap</h2></div>';
+    if (total >= 6) html += '<div class="msg info" style="margin:1rem 1.4rem 0">Søket ga flere treff enn det som vises. Gjør søkekriteriene mer presise.</div>';
     html += '<ul class="results-list">';
-    visible.forEach((e, i) => {
-      const adr = formatAddress(e.forretningsadresse);
+    enheter.slice(0, 5).forEach((e, i) => {
+      const adr = formatAddressLine(e.forretningsadresse);
       html += `<li onclick="selectCompany(${i})">
         <span class="result-name">${esc(e.navn)}</span>
         <span class="result-orgnr">Org.nr: ${esc(e.organisasjonsnummer)}${adr ? " · " + esc(adr) : ""}</span>
@@ -338,189 +336,161 @@
 
   async function selectCompany(idx) {
     const enheter = document.getElementById("resultsArea")._enheter;
-    const enhet = enheter[idx];
     document.getElementById("resultsArea").innerHTML = "";
     setStatus('<span class="spinner"></span> Henter selskapsdata…');
-    await showCompany(enhet);
+    await showCompany(enheter[idx]);
   }
 
   async function showCompany(enhet) {
     setStatus("");
-    const navn = enhet.navn ?? "–";
-    const orgnr = enhet.organisasjonsnummer ?? "–";
-    const adr = enhet.forretningsadresse;
-    const gate = adr ? (Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "")) : "";
-    const post = adr ? [adr.postnummer, adr.poststed].filter(Boolean).join(" ") : "";
-    const nett = enhet.hjemmeside ?? "";
+    const navn    = enhet.navn ?? "–";
+    const orgnr   = enhet.organisasjonsnummer ?? "–";
+    const adr     = enhet.forretningsadresse;
+    const gate    = adr ? (Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "")) : "";
+    const post    = adr ? [adr.postnummer, adr.poststed].filter(Boolean).join(" ") : "";
+    const nett    = enhet.hjemmeside ?? "";
     const ansatte = enhet.antallAnsatte != null ? String(enhet.antallAnsatte) : "–";
 
-    const cc = document.getElementById("companyCard");
-    cc.classList.remove("hidden");
-    cc.innerHTML = `
-      <h2>Selskapsdata</h2>
-      ${fieldRow("Navn", navn)}
-      ${fieldRow("Org.nummer", orgnr)}
-      ${fieldRowMultiline("Forretningsadresse", gate, post)}
-      ${fieldRowLink("Internettadresse", nett)}
-      ${fieldRow("Antall ansatte", ansatte)}
-      <div id="leiRow"></div>
-    `;
+    document.getElementById("companyCard").classList.remove("hidden");
+    document.getElementById("companyCardBody").innerHTML =
+      fieldRow("Navn", navn) +
+      fieldRow("Org.nummer", orgnr) +
+      fieldRowMultiline("Forretningsadresse", gate, post) +
+      fieldRowLink("Internettadresse", nett) +
+      fieldRow("Antall ansatte", ansatte) +
+      '<div id="leiRow"></div>';
 
     await loadRoles(orgnr);
     await loadRegnskap(orgnr);
-    loadLei(orgnr);   // ikke await – vises asynkront i kortet
+    loadLei(orgnr);
   }
 
+  /* ── Field row helpers ── */
   function fieldRow(label, value) {
-    const id = "fr_" + Math.random().toString(36).slice(2);
-    return `
-      <div class="field-row">
-        <span class="field-label">${esc(label)}</span>
-        <span class="field-value" id="${id}">${esc(value)}</span>
-        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
-      </div>`;
+    const id = uid();
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}">${esc(value)}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Kopier</button>
+    </div>`;
   }
 
   function fieldRowMultiline(label, line1, line2) {
-    const id = "fr_" + Math.random().toString(36).slice(2);
+    const id = uid();
     const display = [line1, line2].filter(Boolean).join("<br>");
     const copyVal = [line1, line2].filter(Boolean).join(", ");
-    return `
-      <div class="field-row">
-        <span class="field-label">${esc(label)}</span>
-        <span class="field-value" id="${id}" data-copy="${esc(copyVal)}">${display || "–"}</span>
-        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
-      </div>`;
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}" data-copy="${esc(copyVal)}">${display || "–"}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Kopier</button>
+    </div>`;
   }
 
   function fieldRowLink(label, url) {
-    const id = "fr_" + Math.random().toString(36).slice(2);
+    const id = uid();
     const href = url ? (url.match(/^https?:\/\//) ? url : "https://" + url) : "";
     const display = url
       ? `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:#2563eb">${esc(url)}</a>`
       : "–";
-    return `
-      <div class="field-row">
-        <span class="field-label">${esc(label)}</span>
-        <span class="field-value" id="${id}" data-copy="${esc(url)}">${display}</span>
-        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
-      </div>`;
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}" data-copy="${esc(url)}">${display}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Kopier</button>
+    </div>`;
   }
 
+  /* ── Roles ── */
   async function loadRoles(orgnr) {
-    const rc = document.getElementById("rolesCard");
-    rc.classList.remove("hidden");
-    rc.innerHTML = '<h2>Roller / personer</h2><span class="spinner"></span> Henter roller…';
+    const body = document.getElementById("rolesCardBody");
+    document.getElementById("rolesCard").classList.remove("hidden");
+    body.innerHTML = '<span class="spinner"></span> Henter roller…';
 
     try {
       const res = await fetch(`${API}/enheter/${orgnr}/roller`);
-      if (res.status === 404) {
-        rc.innerHTML = '<h2>Roller / personer</h2><div class="msg info">Ingen roller registrert.</div>';
-        return;
-      }
+      if (res.status === 404) { body.innerHTML = '<div class="msg info">Ingen roller registrert.</div>'; return; }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const grupper = data.rollegrupper ?? [];
+      if (!grupper.length) { body.innerHTML = '<div class="msg info">Ingen roller registrert.</div>'; return; }
 
-      if (grupper.length === 0) {
-        rc.innerHTML = '<h2>Roller / personer</h2><div class="msg info">Ingen roller registrert.</div>';
-        return;
-      }
-
-      let html = '<h2>Roller / personer</h2>';
+      let html = "";
       grupper.forEach(gruppe => {
         const gruppeNavn = gruppe.type?.beskrivelse ?? gruppe.type?.kode ?? "Ukjent gruppe";
         html += `<div class="roles-group"><div class="roles-group-title">${esc(gruppeNavn)}</div>`;
         (gruppe.roller ?? []).forEach(rolle => {
           const rolleType = rolle.type?.beskrivelse ?? rolle.type?.kode ?? "–";
-          let personNavn = "–";
+          let personNavn = null;
           if (rolle.person?.navn) {
             const n = rolle.person.navn;
             personNavn = [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
-          } else if (rolle.enhet?.navn) {
-            personNavn = rolle.enhet.navn;
           }
+          const visNavn = personNavn ?? rolle.enhet?.navn ?? "–";
+          const btns = personNavn ? searchButtons(personNavn) : "";
           html += `<div class="role-item">
             <span class="role-type">${esc(rolleType)}</span>
-            <span class="role-person">${esc(personNavn)}</span>
+            <span class="role-person">${esc(visNavn)}</span>
+            <span class="role-actions">${btns}</span>
           </div>`;
         });
         html += "</div>";
       });
-
-      rc.innerHTML = html;
+      body.innerHTML = html;
     } catch (err) {
-      rc.innerHTML = `<h2>Roller / personer</h2><div class="msg error">Kunne ikke hente roller: ${esc(err.message)}</div>`;
+      body.innerHTML = `<div class="msg error">Kunne ikke hente roller: ${esc(err.message)}</div>`;
     }
   }
 
+  function searchButtons(navn) {
+    const q1881 = navn.trim().replace(/\s+/g, "+");
+    const qEnc  = encodeURIComponent(navn.trim());
+    return `<a class="search-link link-1881" href="https://www.1881.no/?query=${q1881}" target="_blank" rel="noopener">1881</a>` +
+           `<a class="search-link link-li"   href="https://www.linkedin.com/search/results/all/?keywords=${qEnc}&origin=GLOBAL_SEARCH_HEADER" target="_blank" rel="noopener">LinkedIn</a>` +
+           `<a class="search-link link-proff" href="https://www.proff.no/rolles%C3%B8k?q=${qEnc}" target="_blank" rel="noopener">Proff</a>`;
+  }
+
+  /* ── Regnskap ── */
   async function loadRegnskap(orgnr) {
     if (!REGNSKAP_PROXY) return;
     try {
-      const res = await fetch(
-        `${REGNSKAP_PROXY}/${orgnr}?regnskapstype=SELSKAP`,
-        { headers: { accept: "application/json" } }
-      );
+      const res = await fetch(`${REGNSKAP_PROXY}/${orgnr}?regnskapstype=SELSKAP`, { headers: { accept: "application/json" } });
       if (!res.ok) return;
       const data = await res.json();
       const liste = Array.isArray(data) ? data : (data._embedded?.regnskaper ?? []);
       if (!liste.length) return;
 
-      // Bruk siste tilgjengelige regnskap (sortert etter tilDato desc)
-      liste.sort((a, b) => {
-        const tA = a.regnskapsperiode?.tilDato ?? "";
-        const tB = b.regnskapsperiode?.tilDato ?? "";
-        return tB.localeCompare(tA);
-      });
+      liste.sort((a, b) => (b.regnskapsperiode?.tilDato ?? "").localeCompare(a.regnskapsperiode?.tilDato ?? ""));
       const r = liste[0];
-
       const periode = r.regnskapsperiode;
-      const aar = periode?.tilDato ? periode.tilDato.slice(0, 4) : "–";
-      const fra = periode?.fraDato ?? "";
-      const til = periode?.tilDato ?? "";
-      const periodeTekst = fra && til ? `${fra} – ${til}` : aar;
+      const fra = periode?.fraDato ?? ""; const til = periode?.tilDato ?? "";
+      const periodeTekst = fra && til ? `${fra} – ${til}` : (til.slice(0,4) || "–");
 
-      const res2 = r.resultatregnskapResultat ?? {};
+      const res2  = r.resultatregnskapResultat ?? {};
       const drift = res2.driftsresultat ?? {};
-      const inntekter = drift.driftsinntekter?.sumDriftsinntekter ?? res2.sumInntekter ?? null;
-      const driftsres = drift.driftsresultat ?? null;
-      const ordinaert = res2.ordinaertResultatFoerSkattekostnad ?? null;
-      const aarsresultat = res2.aarsresultat ?? null;
-
-      const eiendeler = r.eiendeler ?? {};
-      const sumEiendeler = eiendeler.sumEiendeler ?? null;
-      const ekg = r.egenkapitalGjeld ?? {};
-      const sumEk = ekg.egenkapital?.sumEgenkapital ?? null;
-      const sumGjeld = ekg.gjeld?.sumGjeld ?? null;
-
       const rows = [
-        ["Regnskapsperiode", periodeTekst],
-        ["Driftsinntekter", nok(inntekter)],
-        ["Driftsresultat", nok(driftsres)],
-        ["Res. før skatt", nok(ordinaert)],
-        ["Årsresultat", nok(aarsresultat)],
-        ["Sum eiendeler", nok(sumEiendeler)],
-        ["Sum egenkapital", nok(sumEk)],
-        ["Sum gjeld", nok(sumGjeld)],
+        ["Regnskapsperiode",  periodeTekst],
+        ["Driftsinntekter",   nok(drift.driftsinntekter?.sumDriftsinntekter ?? res2.sumInntekter ?? null)],
+        ["Driftsresultat",    nok(drift.driftsresultat ?? null)],
+        ["Res. før skatt",    nok(res2.ordinaertResultatFoerSkattekostnad ?? null)],
+        ["Årsresultat",       nok(res2.aarsresultat ?? null)],
+        ["Sum eiendeler",     nok(r.eiendeler?.sumEiendeler ?? null)],
+        ["Sum egenkapital",   nok(r.egenkapitalGjeld?.egenkapital?.sumEgenkapital ?? null)],
+        ["Sum gjeld",         nok(r.egenkapitalGjeld?.gjeld?.sumGjeld ?? null)],
       ].filter(([, v]) => v !== null);
 
       if (!rows.length) return;
 
-      const rc = document.getElementById("regnskapCard");
-      rc.classList.remove("hidden");
-      let html = `<h2>Regnskap (siste tilgjengelige)</h2>`;
-      rows.forEach(([label, value]) => {
-        html += `<div class="field-row">
+      const body = document.getElementById("regnskapCardBody");
+      document.getElementById("regnskapCard").classList.remove("hidden");
+      body.innerHTML = rows.map(([label, value]) =>
+        `<div class="field-row">
           <span class="field-label">${esc(label)}</span>
           <span class="field-value">${esc(value)}</span>
-        </div>`;
-      });
-      rc.innerHTML = html;
-    } catch (_) {
-      // utelat kortet ved feil
-    }
+        </div>`
+      ).join("");
+    } catch (_) { }
   }
 
+  /* ── LEI ── */
   async function loadLei(orgnr) {
     try {
       const params = new URLSearchParams({
@@ -528,107 +498,82 @@
         "filter[entity.legalJurisdiction]": "NO",
         "page[size]": "5",
       });
-      const res = await fetch(
-        `https://api.gleif.org/api/v1/lei-records?${params}`,
-        { headers: { accept: "application/vnd.api+json" } }
-      );
+      const res = await fetch(`https://api.gleif.org/api/v1/lei-records?${params}`, { headers: { accept: "application/vnd.api+json" } });
       if (!res.ok) return;
-      const data = await res.json();
-      const records = data?.data ?? [];
+      const records = (await res.json())?.data ?? [];
       if (!records.length) return;
 
-      // Foretrekk ISSUED fremfor andre statuser
-      const statusOrder = ["ISSUED", "PENDING_TRANSFER", "PENDING_ARCHIVAL", "LAPSED", "DUPLICATE", "RETIRED", "ANNULLED", "CANCELLED", "TRANSFERRED", "MERGED"];
-      records.sort((a, b) => {
-        const sA = a.attributes?.registration?.status ?? "";
-        const sB = b.attributes?.registration?.status ?? "";
-        return (statusOrder.indexOf(sA) + 1 || 99) - (statusOrder.indexOf(sB) + 1 || 99);
-      });
-      const record = records[0];
-
-      const lei = record.id ?? record.attributes?.lei;
-      const reg = record.attributes?.registration ?? {};
+      const statusOrder = ["ISSUED","PENDING_TRANSFER","PENDING_ARCHIVAL","LAPSED","DUPLICATE","RETIRED","ANNULLED","CANCELLED","TRANSFERRED","MERGED"];
+      records.sort((a, b) =>
+        (statusOrder.indexOf(a.attributes?.registration?.status ?? "") + 1 || 99) -
+        (statusOrder.indexOf(b.attributes?.registration?.status ?? "") + 1 || 99)
+      );
+      const rec = records[0];
+      const lei = rec.id ?? rec.attributes?.lei;
+      const reg = rec.attributes?.registration ?? {};
       const status = reg.status ?? "";
-      const renewalRaw = reg.nextRenewalDate ?? "";
       if (!lei) return;
 
       const leiRow = document.getElementById("leiRow");
       if (!leiRow) return;
 
-      const statusBadge = status
-        ? ` <span style="font-size:0.75rem;padding:0.1rem 0.45rem;border-radius:4px;background:${status === "ISSUED" ? "#dcfce7" : "#fef9c3"};color:${status === "ISSUED" ? "#15803d" : "#854d0e"}">${esc(status)}</span>`
-        : "";
-      const leiId = "fr_" + Math.random().toString(36).slice(2);
-      let html = `
-        <div class="field-row">
-          <span class="field-label">LEI</span>
-          <span class="field-value" id="${leiId}" data-copy="${esc(lei)}">${esc(lei)}${statusBadge}</span>
-          <button class="copy-btn" onclick="copyField('${leiId}', this)">Kopier</button>
-        </div>`;
+      const badgeClass = status === "ISSUED" ? "badge-green" : "badge-yellow";
+      const leiId = uid();
+      let html = `<div class="field-row">
+        <span class="field-label">LEI</span>
+        <span class="field-value" id="${leiId}" data-copy="${esc(lei)}">${esc(lei)}<span class="badge ${badgeClass}">${esc(status)}</span></span>
+        <button class="copy-btn" onclick="copyField('${leiId}',this)">Kopier</button>
+      </div>`;
 
-      if (renewalRaw) {
-        const renewalDate = new Date(renewalRaw).toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "numeric" });
-        const isOverdue = new Date(renewalRaw) < new Date();
-        const renewId = "fr_" + Math.random().toString(36).slice(2);
-        const overdueFlag = isOverdue
-          ? ` <span style="font-size:0.75rem;padding:0.1rem 0.45rem;border-radius:4px;background:#fee2e2;color:#991b1b">Forfalt</span>`
-          : "";
-        html += `
-        <div class="field-row">
+      if (reg.nextRenewalDate) {
+        const renewalDate = new Date(reg.nextRenewalDate).toLocaleDateString("nb-NO", { day:"2-digit", month:"2-digit", year:"numeric" });
+        const overdue = new Date(reg.nextRenewalDate) < new Date();
+        const renewId = uid();
+        html += `<div class="field-row">
           <span class="field-label">LEI-fornyelse</span>
-          <span class="field-value" id="${renewId}" data-copy="${esc(renewalDate)}">${esc(renewalDate)}${overdueFlag}</span>
-          <button class="copy-btn" onclick="copyField('${renewId}', this)">Kopier</button>
+          <span class="field-value" id="${renewId}" data-copy="${esc(renewalDate)}">${esc(renewalDate)}${overdue ? '<span class="badge badge-red">Forfalt</span>' : ''}</span>
+          <button class="copy-btn" onclick="copyField('${renewId}',this)">Kopier</button>
         </div>`;
       }
 
       leiRow.innerHTML = html;
-    } catch (_) {
-      // utelat stille ved feil
-    }
+    } catch (_) { }
   }
+
+  /* ── Utilities ── */
+  function uid() { return "fr_" + Math.random().toString(36).slice(2); }
 
   function nok(val) {
     if (val == null) return null;
     return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 }) + " kr";
   }
 
-  function formatAddress(adr) {
+  function formatAddressLine(adr) {
     if (!adr) return "";
-    const gateadresse = Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "");
+    const gate = Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "");
     const post = [adr.postnummer, adr.poststed].filter(Boolean).join(" ");
-    return [gateadresse, post].filter(Boolean).join(", ");
+    return [gate, post].filter(Boolean).join(", ");
   }
 
   function copyField(id, btn) {
     const el = document.getElementById(id);
     const val = el?.dataset.copy ?? el?.innerText ?? "";
     navigator.clipboard.writeText(val).then(() => {
-      btn.textContent = "Kopiert!";
-      btn.classList.add("copied");
-      setTimeout(() => {
-        btn.textContent = "Kopier";
-        btn.classList.remove("copied");
-      }, 1800);
+      btn.textContent = "Kopiert!"; btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Kopier"; btn.classList.remove("copied"); }, 1800);
     }).catch(() => {
-      // fallback
       const ta = document.createElement("textarea");
-      ta.value = val;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      btn.textContent = "Kopiert!";
-      btn.classList.add("copied");
+      ta.value = val; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      btn.textContent = "Kopiert!"; btn.classList.add("copied");
       setTimeout(() => { btn.textContent = "Kopier"; btn.classList.remove("copied"); }, 1800);
     });
   }
 
   function esc(str) {
     return String(str ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 </script>
 </body>
