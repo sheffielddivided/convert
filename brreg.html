@@ -399,7 +399,7 @@
     document.getElementById("companyCard").classList.remove("hidden");
     document.getElementById("companyCardBody").innerHTML =
       fieldRow("Navn", navn) +
-      fieldRow("Org.nummer", orgnr) +
+      fieldRowOrgnr("Org.nummer", orgnr) +
       fieldRowMultiline("Forretningsadresse", gate, post) +
       fieldRowLink("Internettadresse", nett) +
       fieldRow("Antall ansatte", ansatte) +
@@ -417,6 +417,16 @@
     return `<div class="field-row">
       <span class="field-label">${esc(label)}</span>
       <span class="field-value" id="${id}">${esc(value)}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Kopier</button>
+    </div>`;
+  }
+
+  function fieldRowOrgnr(label, value) {
+    const id = uid();
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}">${esc(value)}</span>
+      <a class="copy-btn" href="https://virksomhet.brreg.no/nb/oppslag/enheter/${esc(value)}" target="_blank" rel="noopener" style="text-decoration:none">BRREG ↗</a>
       <button class="copy-btn" onclick="copyField('${id}',this)">Kopier</button>
     </div>`;
   }
