@@ -174,9 +174,10 @@
     /* ── Badges ── */
     .badge {
       display: inline-block; font-size: 0.72rem; font-weight: 600;
-      padding: 0.1rem 0.45rem; border-radius: 4px; margin-left: 0.4rem;
+      padding: 0.1rem 0.45rem; border-radius: 4px;
       vertical-align: middle;
     }
+    .role-badge-col { width: 100px; flex-shrink: 0; }
     .badge-green  { background: #dcfce7; color: #15803d; }
     .badge-yellow { background: #fef9c3; color: #854d0e; }
     .badge-red    { background: #fee2e2; color: #991b1b; }
@@ -435,13 +436,16 @@
           const ansattvalgt = rolle.valgtAv?.kode === "AREP";
           const navnMedAar = personNavn
             ? personNavn + (fodselsdato ? ` <span class="birth-year">(${esc(fodselsdato)})</span>` : "")
-              + (ansattvalgt ? ' <span class="badge badge-ansatt" title="Representant for de ansatte">Ansattvalgt</span>' : "")
             : esc(enhetNavn ?? "–");
           const visNavn = personNavn ?? enhetNavn ?? "–";
           const btns = personNavn ? searchButtons(personNavn) : "";
+          const ansattBadge = ansattvalgt
+            ? '<span class="badge badge-ansatt" title="Representant for de ansatte">Ansattvalgt</span>'
+            : "";
           html += `<div class="role-item">
             <span class="role-type">${esc(rolleType)}</span>
             <span class="role-person">${navnMedAar}</span>
+            <span class="role-badge-col">${ansattBadge}</span>
             <span class="role-actions">${btns}</span>
           </div>`;
         });
