@@ -226,9 +226,7 @@
 <script>
   const API = "https://data.brreg.no/enhetsregisteret/api";
 
-  // Sett inn URL-en til din Cloudflare Worker etter deploy, f.eks.:
-  // const REGNSKAP_PROXY = "https://regnskap-proxy.ditt-navn.workers.dev";
-  const REGNSKAP_PROXY = "";
+  const REGNSKAP_PROXY = "https://regnskap-proxy.batil-kjekken.workers.dev";
 
   document.getElementById("searchInput").addEventListener("keydown", e => {
     if (e.key === "Enter") doSearch();
