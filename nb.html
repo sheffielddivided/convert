@@ -515,7 +515,7 @@ async function loadInterest() {
       type: 'line', data: { labels: tenorLabels, datasets: [{ data: yieldValues, borderColor: '#0099ff', backgroundColor: grad, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#0099ff', pointBorderColor: '#0a0f1a', pointBorderWidth: 2, borderWidth: 2.5 }] },
       options: { responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return c.parsed.y.toFixed(3) + '%'; } } } },
-        scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
+        scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { suggestedMin: 0, ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
     });
     loadPolicyPressRelease();
   } catch(e) { container.innerHTML = '<div class="error-msg">Failed to load interest rate data. Please try again.</div>'; }
