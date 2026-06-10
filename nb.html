@@ -32,6 +32,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .currency-list{display:flex;flex-direction:column;gap:10px}
 .currency-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .18s;-webkit-user-select:none;user-select:none;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .currency-card:active{background:var(--card-hover);transform:scale(0.98);box-shadow:none}
+.currency-card.drag-over{border-color:var(--accent);background:var(--card-hover)}
+.drag-placeholder{border-radius:16px;background:var(--bg);border:2px dashed var(--border);transition:none}
+.drag-ghost{opacity:0.9;box-shadow:0 8px 28px rgba(0,85,179,0.18);transform:scale(1.02);border-color:var(--accent)!important}
+.drag-handle{display:flex;align-items:center;padding:4px 10px 4px 0;color:var(--border);cursor:grab;font-size:18px;flex-shrink:0;touch-action:none}
+.drag-handle:active{cursor:grabbing;color:var(--text2)}
 .cc-left{display:flex;align-items:center;gap:12px}
 .cc-code{font-size:18px;font-weight:700;width:48px;color:var(--text)}
 .cc-name{font-size:13px;color:var(--text2);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -157,7 +162,15 @@ function switchTab(tab) {
 
 var PRIORITY = ['USD','EUR','GBP','SEK','DKK','CHF'];
 var ALPHA = ['AUD','BRL','CAD','CZK','JPY','PLN','KRW','TRY'];
-var ALL_CUR = PRIORITY.concat(ALPHA);
+var DEFAULT_CUR = PRIORITY.concat(ALPHA);
+var ALL_CUR = (function() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('nb_cur_order') || 'null');
+    if (saved && Array.isArray(saved) && saved.length === DEFAULT_CUR.length &&
+        DEFAULT_CUR.every(function(c){ return saved.indexOf(c) >= 0; })) return saved;
+  } catch(e) {}
+  return DEFAULT_CUR.slice();
+})();
 var BASE_EXR = 'https://data.norges-bank.no/api/data/EXR/B.';
 
 function parseSpotResponse(json) {
@@ -214,13 +227,81 @@ async function loadCurrencies() {
     if (r.date > latestDate) latestDate = r.date;
     var card = document.createElement('div');
     card.className = 'currency-card';
-    card.onclick = (function(c, n, v) { return function() { openChart(c, n, v); }; })(cur, r.name, r.value);
-    card.innerHTML = '<div class="cc-left"><span class="cc-code">' + cur + '</span><span class="cc-name">' + r.name + '</span></div><div style="display:flex;align-items:center"><span class="cc-rate">' + r.value.toFixed(4) + '</span><span class="cc-arrow">\u203A</span></div>';
+    card.dataset.cur = cur;
+    card.onclick = (function(c, n, v) { return function(e) { if (!e.target.closest('.drag-handle')) openChart(c, n, v); }; })(cur, r.name, r.value);
+    card.innerHTML = '<span class="drag-handle">&#x2807;</span><div class="cc-left"><span class="cc-code">' + cur + '</span><span class="cc-name">' + r.name + '</span></div><div style="display:flex;align-items:center"><span class="cc-rate">' + r.value.toFixed(4) + '</span><span class="cc-arrow">\u203A</span></div>';
     list.appendChild(card);
   }
   if (latestDate) {
     document.getElementById('rateDate').textContent = 'Rates as of ' + latestDate;
   }
+  initDragDrop(list);
+}
+
+function initDragDrop(list) {
+  var dragCard = null, ghost = null, placeholder = null, offsetX = 0, offsetY = 0;
+
+  function getCardFromPoint(x, y) {
+    ghost && (ghost.style.visibility = 'hidden');
+    var el = document.elementFromPoint(x, y);
+    ghost && (ghost.style.visibility = '');
+    if (!el) return null;
+    var card = el.closest('.currency-card');
+    return (card && card !== dragCard && !card.classList.contains('drag-placeholder')) ? card : null;
+  }
+
+  list.addEventListener('pointerdown', function(e) {
+    if (!e.target.closest('.drag-handle')) return;
+    var card = e.target.closest('.currency-card');
+    if (!card) return;
+    e.preventDefault();
+    dragCard = card;
+
+    var rect = card.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    card.parentNode.insertBefore(placeholder, card);
+
+    ghost = card.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.cssText += ';position:fixed;top:' + rect.top + 'px;left:' + rect.left + 'px;width:' + rect.width + 'px;z-index:1000;pointer-events:none;margin:0;transition:box-shadow .15s';
+    document.body.appendChild(ghost);
+
+    card.style.visibility = 'hidden';
+    list.setPointerCapture(e.pointerId);
+  });
+
+  list.addEventListener('pointermove', function(e) {
+    if (!ghost) return;
+    e.preventDefault();
+    ghost.style.top = (e.clientY - offsetY) + 'px';
+    ghost.style.left = (e.clientX - offsetX) + 'px';
+
+    var over = getCardFromPoint(e.clientX, e.clientY);
+    if (over) {
+      var mid = over.getBoundingClientRect().top + over.getBoundingClientRect().height / 2;
+      over.parentNode.insertBefore(placeholder, e.clientY < mid ? over : over.nextSibling);
+    }
+  });
+
+  function endDrag() {
+    if (!ghost) return;
+    placeholder.parentNode.insertBefore(dragCard, placeholder);
+    dragCard.style.visibility = '';
+    placeholder.remove();
+    ghost.remove();
+    ghost = null; placeholder = null;
+
+    ALL_CUR = Array.from(list.querySelectorAll('.currency-card[data-cur]')).map(function(c){ return c.dataset.cur; });
+    try { localStorage.setItem('nb_cur_order', JSON.stringify(ALL_CUR)); } catch(e) {}
+  }
+
+  list.addEventListener('pointerup', endDrag);
+  list.addEventListener('pointercancel', endDrag);
 }
 
 var histChartInstance = null;
