@@ -473,9 +473,6 @@ async function loadInflation() {
       var q = s.match(/(\d{4})K(\d)/);
       if (q) return 'Q' + q[2] + ' ' + q[1];
       return s;
-    })K(\d)/);
-      if (!m) return s;
-      return 'Q' + m[2] + ' ' + m[1];
     }
 
     var cpi = parseStat2(cpiData, 'Tid', 'ContentsCode');
