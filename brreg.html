@@ -524,7 +524,7 @@
   async function loadLei(orgnr) {
     try {
       const res = await fetch(
-        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.jurisdiction]=NO&page[size]=1`,
+        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.jurisdiction]=NO&filter[registration.status]=ISSUED&page[size]=1`,
         { headers: { accept: "application/vnd.api+json" } }
       );
       if (!res.ok) return;
