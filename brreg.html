@@ -493,7 +493,7 @@
   /* ── LEI ── */
   async function loadLei(orgnr, navn) {
     try {
-      const gleifUrl = `https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(navn)}&filter[entity.legalJurisdiction]=NO&page[size]=10`;
+      const gleifUrl = `https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(navn)}&page[size]=10`;
       const res = await fetch(gleifUrl, { headers: { accept: "application/vnd.api+json" } });
       if (!res.ok) return;
       const allRecords = (await res.json())?.data ?? [];
