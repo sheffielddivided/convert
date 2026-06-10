@@ -477,21 +477,24 @@
 
       liste.sort((a, b) => (b.regnskapsperiode?.tilDato ?? "").localeCompare(a.regnskapsperiode?.tilDato ?? ""));
       const r = liste[0];
+      const valuta = r.valuta ?? "NOK";
       const periode = r.regnskapsperiode;
       const fra = periode?.fraDato ?? ""; const til = periode?.tilDato ?? "";
       const periodeTekst = fra && til ? `${fra} – ${til}` : (til.slice(0,4) || "–");
 
       const res2  = r.resultatregnskapResultat ?? {};
       const drift = res2.driftsresultat ?? {};
+      const fmt = v => valutaFmt(v, valuta);
       const rows = [
         ["Regnskapsperiode",  periodeTekst],
-        ["Driftsinntekter",   nok(drift.driftsinntekter?.sumDriftsinntekter ?? res2.sumInntekter ?? null)],
-        ["Driftsresultat",    nok(drift.driftsresultat ?? null)],
-        ["Res. før skatt",    nok(res2.ordinaertResultatFoerSkattekostnad ?? null)],
-        ["Årsresultat",       nok(res2.aarsresultat ?? null)],
-        ["Sum eiendeler",     nok(r.eiendeler?.sumEiendeler ?? null)],
-        ["Sum egenkapital",   nok(r.egenkapitalGjeld?.egenkapital?.sumEgenkapital ?? null)],
-        ["Sum gjeld",         nok(r.egenkapitalGjeld?.gjeld?.sumGjeld ?? null)],
+        ["Valuta",            valuta],
+        ["Driftsinntekter",   fmt(drift.driftsinntekter?.sumDriftsinntekter ?? res2.sumInntekter ?? null)],
+        ["Driftsresultat",    fmt(drift.driftsresultat ?? null)],
+        ["Res. før skatt",    fmt(res2.ordinaertResultatFoerSkattekostnad ?? null)],
+        ["Årsresultat",       fmt(res2.aarsresultat ?? null)],
+        ["Sum eiendeler",     fmt(r.eiendeler?.sumEiendeler ?? null)],
+        ["Sum egenkapital",   fmt(r.egenkapitalGjeld?.egenkapital?.sumEgenkapital ?? null)],
+        ["Sum gjeld",         fmt(r.egenkapitalGjeld?.gjeld?.sumGjeld ?? null)],
       ].filter(([, v]) => v !== null);
 
       if (!rows.length) return;
@@ -562,9 +565,9 @@
   /* ── Utilities ── */
   function uid() { return "fr_" + Math.random().toString(36).slice(2); }
 
-  function nok(val) {
+  function valutaFmt(val, valuta) {
     if (val == null) return null;
-    return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 }) + " kr";
+    return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 }) + " " + (valuta ?? "NOK");
   }
 
   function formatAddressLine(adr) {
