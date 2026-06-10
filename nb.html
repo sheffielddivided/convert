@@ -466,15 +466,14 @@ async function loadInflation() {
       return { labels: tidKeys, series: series };
     }
 
-    function fmtLabel(s) {
+    function fmtPeriod(s) {
       var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       var m = s.match(/(\d{4})M(\d{2})/);
-      if (!m) return s;
-      return months[parseInt(m[2])-1] + ' ' + m[1].slice(2);
-    }
-
-    function fmtYear(s) {
-      var m = s.match(/(\d{4})K(\d)/);
+      if (m) return months[parseInt(m[2])-1] + '\u00a0' + m[1].slice(2);
+      var q = s.match(/(\d{4})K(\d)/);
+      if (q) return 'Q' + q[2] + ' ' + q[1];
+      return s;
+    })K(\d)/);
       if (!m) return s;
       return 'Q' + m[2] + ' ' + m[1];
     }
