@@ -514,7 +514,7 @@
     const body = document.getElementById("aksjonaerCardBody");
     try {
       const res = await fetch(
-        `https://www.aksjegrafen.com/api/investors?orgnr=${orgnr}&limit=10`,
+        `https://www.aksjegrafen.com/api/investors?orgnr=${orgnr}&limit=20`,
         { headers: { accept: "application/json" } }
       );
       if (!res.ok) { console.warn("Aksjegrafen:", res.status); return; }
@@ -532,9 +532,10 @@
       const totalAksjer = liste.reduce((sum, r) =>
         sum + (r.holdings?.[sisteAar]?.total ?? 0), 0);
 
-      // Sorter synkende på antall aksjer
-      const sorted = [...liste].sort((a, b) =>
-        (b.holdings?.[sisteAar]?.total ?? 0) - (a.holdings?.[sisteAar]?.total ?? 0));
+      // Filtrer bort 0-beholdninger og sorter synkende
+      const sorted = liste
+        .filter(r => (r.holdings?.[sisteAar]?.total ?? 0) > 0)
+        .sort((a, b) => (b.holdings?.[sisteAar]?.total ?? 0) - (a.holdings?.[sisteAar]?.total ?? 0));
 
       const maxAksjer = sorted[0]?.holdings?.[sisteAar]?.total ?? 1;
 
