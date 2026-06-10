@@ -559,7 +559,7 @@ function makeInflationChart(id, labels, values, color, bgColor) {
       plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return (c.parsed.y != null ? c.parsed.y.toFixed(1) : '\u2014') + '%'; } } } },
       scales: {
         x: { ticks: { color: '#64748b', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } },
-        y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
+        y: { suggestedMin: 0, ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
       }
     }
   });
