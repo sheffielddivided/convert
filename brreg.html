@@ -484,7 +484,7 @@
 
       const res2  = r.resultatregnskapResultat ?? {};
       const drift = res2.driftsresultat ?? {};
-      const fmt = v => valutaFmt(v, valuta);
+      const fmt = v => valutaFmt(v);
       const rows = [
         ["Regnskapsperiode",  periodeTekst],
         ["Valuta",            valuta],
@@ -565,9 +565,9 @@
   /* ── Utilities ── */
   function uid() { return "fr_" + Math.random().toString(36).slice(2); }
 
-  function valutaFmt(val, valuta) {
+  function valutaFmt(val) {
     if (val == null) return null;
-    return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 }) + " " + (valuta ?? "NOK");
+    return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 });
   }
 
   function formatAddressLine(adr) {
