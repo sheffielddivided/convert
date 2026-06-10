@@ -362,7 +362,7 @@
 
     await loadRoles(orgnr);
     await loadRegnskap(orgnr);
-    loadLei(orgnr);
+    loadLei(orgnr, navn);
   }
 
   /* ── Field row helpers ── */
@@ -491,12 +491,18 @@
   }
 
   /* ── LEI ── */
-  async function loadLei(orgnr) {
+  async function loadLei(orgnr, navn) {
     try {
-      const gleifUrl = `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.legalJurisdiction]=NO&page[size]=5`;
+      const gleifUrl = `https://api.gleif.org/api/v1/lei-records?filter[entity.legalName]=${encodeURIComponent(navn)}&filter[entity.legalJurisdiction]=NO&page[size]=10`;
       const res = await fetch(gleifUrl, { headers: { accept: "application/vnd.api+json" } });
       if (!res.ok) return;
-      const records = (await res.json())?.data ?? [];
+      const allRecords = (await res.json())?.data ?? [];
+      // Prioriter treff der registrert nummer matcher org.nummeret
+      const records = allRecords.filter(r =>
+        (r.attributes?.entity?.registeredAs ?? "").replace(/\s/g,"") === orgnr
+      ).concat(allRecords.filter(r =>
+        (r.attributes?.entity?.registeredAs ?? "").replace(/\s/g,"") !== orgnr
+      ));
       if (!records.length) return;
 
       const statusOrder = ["ISSUED","PENDING_TRANSFER","PENDING_ARCHIVAL","LAPSED","DUPLICATE","RETIRED","ANNULLED","CANCELLED","TRANSFERRED","MERGED"];
