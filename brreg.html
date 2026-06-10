@@ -415,6 +415,7 @@
       const grupper = data.rollegrupper ?? [];
       if (!grupper.length) { body.innerHTML = '<div class="msg info">Ingen roller registrert.</div>'; return; }
 
+      console.log("BRREG roller rådata:", JSON.stringify(grupper, null, 2));
       let html = "";
       grupper.forEach(gruppe => {
         const gruppeNavn = gruppe.type?.beskrivelse ?? gruppe.type?.kode ?? "Ukjent gruppe";
@@ -426,10 +427,13 @@
             const n = rolle.person.navn;
             personNavn = [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
           }
-          const fodselsaar = rolle.person?.fodselsdato?.slice(0, 4) ?? null;
+          const fdRaw = rolle.person?.fodselsdato ?? null;
+          const fodselsdato = fdRaw
+            ? new Date(fdRaw).toLocaleDateString("nb-NO", { day:"2-digit", month:"2-digit", year:"numeric" })
+            : null;
           const ansattvalgt = (rolle.valgtAv?.kode ?? "").toUpperCase() === "ANSATTE";
           const navnMedAar = personNavn
-            ? personNavn + (fodselsaar ? ` <span class="birth-year">(${esc(fodselsaar)})</span>` : "")
+            ? personNavn + (fodselsdato ? ` <span class="birth-year">(${esc(fodselsdato)})</span>` : "")
               + (ansattvalgt ? ' <span class="badge badge-ansatt" title="Valgt av ansatte">Ansattvalgt</span>' : "")
             : esc(rolle.enhet?.navn ?? "–");
           const visNavn = personNavn ?? rolle.enhet?.navn ?? "–";
