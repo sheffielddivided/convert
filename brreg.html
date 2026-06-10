@@ -291,6 +291,17 @@
     <div class="card-body" id="regnskapCardBody"></div>
   </div>
 
+  <!-- Portefølje -->
+  <div id="portefoljeCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon amber">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+      </div>
+      <h2>Aksjebeholdning (portefølje)</h2>
+    </div>
+    <div class="card-body" id="portefoljeCardBody"></div>
+  </div>
+
 </div>
 
 <script>
@@ -307,7 +318,7 @@
 
   function clearResults() {
     document.getElementById("resultsArea").innerHTML = "";
-    ["companyCard","rolesCard","aksjonaerCard","regnskapCard"].forEach(id =>
+    ["companyCard","rolesCard","aksjonaerCard","regnskapCard","portefoljeCard"].forEach(id =>
       document.getElementById(id).classList.add("hidden")
     );
     document.getElementById("companyCardBody").innerHTML = "";
@@ -407,6 +418,7 @@
 
     await loadRoles(orgnr);
     loadAksjonaerer(orgnr);
+    loadPortefolje(orgnr);
     await loadRegnskap(orgnr);
     loadLei(orgnr, navn);
   }
@@ -591,6 +603,88 @@
       body.innerHTML = html;
     } catch (err) {
       console.warn("Aksjegrafen feil:", err.message);
+    }
+  }
+
+  /* ── Portefølje ── */
+  async function loadPortefolje(orgnr) {
+    const card = document.getElementById("portefoljeCard");
+    const body = document.getElementById("portefoljeCardBody");
+    try {
+      const res = await fetch(
+        `https://www.aksjegrafen.com/api/investments?shareholderOrgnr=${orgnr}&limit=100`,
+        { headers: { accept: "application/json" } }
+      );
+      if (!res.ok) { console.warn("Aksjegrafen investments:", res.status); return; }
+      const liste = await res.json();
+      if (!Array.isArray(liste) || !liste.length) return;
+
+      // For hvert selskap: finn siste år med >0 beholdning
+      const rows = liste.map(r => {
+        const aar = Object.keys(r.holdings ?? {}).map(Number).filter(Boolean).sort((a,b) => b - a);
+        let sisteAar = null, antall = 0;
+        for (const a of aar) {
+          const t = r.holdings[a]?.total ?? 0;
+          if (t > 0) { sisteAar = a; antall = t; break; }
+        }
+        if (!sisteAar) return null;
+
+        const totalAksjer = r.investment?.shares?.[sisteAar]?.total ?? null;
+        const pct = (totalAksjer && antall) ? (antall / totalAksjer * 100) : null;
+
+        return {
+          navn:        r.investment?.name ?? r.orgnr,
+          invOrgnr:    r.orgnr,
+          antall,
+          totalAksjer,
+          pct,
+          sisteAar,
+        };
+      }).filter(Boolean);
+
+      if (!rows.length) return;
+
+      // Sorter synkende på eierandel, deretter antall aksjer
+      rows.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.antall - a.antall);
+
+      const maxPct = rows.reduce((m, r) => Math.max(m, r.pct ?? 0), 0);
+
+      let html = `<table class="aksjoner-table"><thead><tr>
+        <th>Selskap</th>
+        <th class="num">Aksjer eid</th>
+        <th class="num">Eierandel</th>
+      </tr></thead><tbody>`;
+
+      rows.forEach(r => {
+        const erNorsk = /^\d{9}$/.test(r.invOrgnr ?? "");
+        const nameCell = erNorsk
+          ? `<td class="name"><div>${esc(r.navn)}</div>
+             <div class="orgnr-link"><a href="#" onclick="doLookup('${esc(r.invOrgnr)}');return false">${esc(r.invOrgnr)}</a></div></td>`
+          : `<td class="name"><div>${esc(r.navn)}</div>
+             <div class="orgnr-link" style="color:#94a3b8;font-size:0.82rem">${esc(r.invOrgnr)}</div></td>`;
+
+        const barPct = (r.pct != null && maxPct > 0) ? (r.pct / maxPct * 100) : 0;
+        const pctCell = `<td class="num"><div class="pct-bar-wrap">
+          <div class="pct-bar"><div class="pct-bar-fill" style="width:${barPct.toFixed(1)}%"></div></div>
+          ${r.pct != null
+            ? r.pct.toLocaleString("nb-NO", {minimumFractionDigits:2, maximumFractionDigits:2}) + " %"
+            : "–"}
+        </div></td>`;
+
+        html += `<tr>
+          ${nameCell}
+          <td class="num">${r.antall.toLocaleString("nb-NO")}</td>
+          ${pctCell}
+        </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      html += `<p class="aksjoner-note">Kilde: Aksjegrafen · ${rows.length} selskap${rows.length !== 1 ? "er" : ""}</p>`;
+
+      card.classList.remove("hidden");
+      body.innerHTML = html;
+    } catch (err) {
+      console.warn("Aksjegrafen portefølje feil:", err.message);
     }
   }
 
