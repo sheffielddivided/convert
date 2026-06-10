@@ -431,12 +431,12 @@
           const fodselsdato = fdRaw
             ? new Date(fdRaw).toLocaleDateString("nb-NO", { day:"2-digit", month:"2-digit", year:"numeric" })
             : null;
+          const enhetNavn = Array.isArray(rolle.enhet?.navn) ? rolle.enhet.navn[0] : (rolle.enhet?.navn ?? null);
           const ansattvalgt = rolle.valgtAv?.kode === "AREP";
           const navnMedAar = personNavn
             ? personNavn + (fodselsdato ? ` <span class="birth-year">(${esc(fodselsdato)})</span>` : "")
               + (ansattvalgt ? ' <span class="badge badge-ansatt" title="Representant for de ansatte">Ansattvalgt</span>' : "")
             : esc(enhetNavn ?? "–");
-          const enhetNavn = Array.isArray(rolle.enhet?.navn) ? rolle.enhet.navn[0] : (rolle.enhet?.navn ?? null);
           const visNavn = personNavn ?? enhetNavn ?? "–";
           const btns = personNavn ? searchButtons(personNavn) : "";
           html += `<div class="role-item">
