@@ -208,7 +208,7 @@
       width: 60px; height: 6px; background: #e2e8f0;
       border-radius: 3px; overflow: hidden; flex-shrink: 0;
     }
-    .pct-bar-fill { height: 100%; background: #2563eb; border-radius: 3px; }
+    .pct-bar-fill { height: 100%; width: 0; background: #2563eb; border-radius: 3px; }
     .aksjoner-note {
       font-size: 0.78rem; color: #94a3b8; margin-top: 0.75rem; text-align: right;
     }
@@ -518,59 +518,63 @@
         { headers: { accept: "application/json" } }
       );
       if (!res.ok) { console.warn("Aksjegrafen:", res.status); return; }
-      const data = await res.json();
+      const liste = await res.json();
+      if (!Array.isArray(liste) || !liste.length) return;
 
-      // Responsen kan være et array eller et objekt med en liste
-      const liste = Array.isArray(data) ? data
-        : (data.investors ?? data.data ?? data.results ?? data.shareholders ?? []);
-      if (!liste.length) return;
+      // Finn siste år på tvers av alle aksjonærers holdings
+      const sisteAar = liste.reduce((max, r) => {
+        const aar = Object.keys(r.holdings ?? {}).map(Number).filter(Boolean);
+        return aar.length ? Math.max(max, ...aar) : max;
+      }, 0);
+      if (!sisteAar) return;
 
-      console.log("Aksjegrafen rådata (første rad):", JSON.stringify(liste[0], null, 2));
+      // Beregn totalantall aksjer for siste år (grunnlag for prosentberegning)
+      const totalAksjer = liste.reduce((sum, r) =>
+        sum + (r.holdings?.[sisteAar]?.total ?? 0), 0);
 
-      // Finn relevante feltnavn dynamisk fra første rad
-      const first = liste[0];
-      const nameKey  = ["name","navn","investorName","investor_name","shareholder"].find(k => k in first);
-      const pctKey   = ["percentage","pct","ownershipPercentage","ownership_percentage","andel","share"].find(k => k in first);
-      const sharesKey= ["shares","numberOfShares","number_of_shares","aksjer","antall"].find(k => k in first);
-      const orgnrKey = ["orgnr","organizationNumber","organization_number","investorOrgnr","investor_orgnr"].find(k => k in first);
-      const yearKey  = ["year","aar","år","regnskapsaar"].find(k => k in first);
+      // Sorter synkende på antall aksjer
+      const sorted = [...liste].sort((a, b) =>
+        (b.holdings?.[sisteAar]?.total ?? 0) - (a.holdings?.[sisteAar]?.total ?? 0));
 
-      if (!nameKey) { console.warn("Aksjegrafen: fant ikke navnefelt", first); return; }
-
-      const year = yearKey ? liste[0][yearKey] : null;
-      const maxPct = liste.reduce((m, r) => Math.max(m, parseFloat(r[pctKey] ?? 0)), 0);
+      const maxAksjer = sorted[0]?.holdings?.[sisteAar]?.total ?? 1;
 
       let html = `<table class="aksjoner-table"><thead><tr>
         <th>Aksjonær</th>
-        ${sharesKey ? '<th class="num">Aksjer</th>' : ""}
-        ${pctKey    ? '<th class="num">Eierandel</th>' : ""}
+        <th class="num">Aksjer (${sisteAar})</th>
+        <th class="num">Eierandel</th>
       </tr></thead><tbody>`;
 
-      liste.forEach(r => {
-        const navn   = r[nameKey] ?? "–";
-        const pct    = pctKey   ? parseFloat(r[pctKey])   : null;
-        const shares = sharesKey ? parseInt(r[sharesKey], 10) : null;
-        const inv_orgnr = orgnrKey ? r[orgnrKey] : null;
+      sorted.forEach(r => {
+        const sh      = r.investor?.shareholder ?? {};
+        const navn    = sh.name ?? r.shareHolderId ?? "–";
+        const land    = sh.countryCode ?? "";
+        const invOrgnr = sh.orgnr ?? r.shareholderOrgnr ?? null;
+        const erNorsk = land === "NOR" || (invOrgnr && /^\d{9}$/.test(invOrgnr) && land === "");
+        const aksjer  = r.holdings?.[sisteAar]?.total ?? 0;
+        const pct     = totalAksjer > 0 ? (aksjer / totalAksjer * 100) : 0;
+        const barPct  = maxAksjer > 0  ? (aksjer / maxAksjer * 100)   : 0;
 
-        const nameCell = inv_orgnr
-          ? `<td class="name"><div>${esc(navn)}</div><div class="orgnr-link"><a href="#" onclick="doLookup('${esc(inv_orgnr)}');return false">${esc(inv_orgnr)}</a></div></td>`
-          : `<td class="name">${esc(navn)}</td>`;
+        const landBadge = land && land !== "NOR"
+          ? ` <span style="font-size:0.7rem;color:#94a3b8">${esc(land)}</span>` : "";
 
-        const sharesCell = sharesKey
-          ? `<td class="num">${shares != null ? shares.toLocaleString("nb-NO") : "–"}</td>` : "";
+        const nameCell = erNorsk && invOrgnr
+          ? `<td class="name"><div>${esc(navn)}${landBadge}</div>
+             <div class="orgnr-link"><a href="#" onclick="doLookup('${esc(invOrgnr)}');return false">${esc(invOrgnr)}</a></div></td>`
+          : `<td class="name"><div>${esc(navn)}${landBadge}</div>
+             ${invOrgnr ? `<div class="orgnr-link" style="color:#94a3b8;font-size:0.82rem">${esc(invOrgnr)}</div>` : ""}</td>`;
 
-        const barWidth = (pct != null && maxPct > 0) ? Math.round((pct / maxPct) * 60) : 0;
-        const pctCell  = pctKey
-          ? `<td class="num"><div class="pct-bar-wrap">
-              <div class="pct-bar"><div class="pct-bar-fill" style="width:${barWidth}px"></div></div>
-              ${pct != null ? pct.toLocaleString("nb-NO", {minimumFractionDigits:2, maximumFractionDigits:2}) + " %" : "–"}
-            </div></td>` : "";
-
-        html += `<tr>${nameCell}${sharesCell}${pctCell}</tr>`;
+        html += `<tr>
+          ${nameCell}
+          <td class="num">${aksjer.toLocaleString("nb-NO")}</td>
+          <td class="num"><div class="pct-bar-wrap">
+            <div class="pct-bar"><div class="pct-bar-fill" style="width:${barPct.toFixed(1)}%"></div></div>
+            ${pct.toLocaleString("nb-NO", {minimumFractionDigits:2, maximumFractionDigits:2}) + " %"}
+          </div></td>
+        </tr>`;
       });
 
       html += `</tbody></table>`;
-      if (year) html += `<p class="aksjoner-note">Kilde: Aksjegrafen · Sist oppdatert ${year}</p>`;
+      html += `<p class="aksjoner-note">Kilde: Aksjegrafen · Data for ${sisteAar}${totalAksjer ? " · Totalt " + totalAksjer.toLocaleString("nb-NO") + " aksjer (blant viste)" : ""}</p>`;
 
       card.classList.remove("hidden");
       body.innerHTML = html;
