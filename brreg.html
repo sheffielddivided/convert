@@ -361,10 +361,12 @@
       ${fieldRowMultiline("Forretningsadresse", gate, post)}
       ${fieldRowLink("Internettadresse", nett)}
       ${fieldRow("Antall ansatte", ansatte)}
+      <div id="leiRow"></div>
     `;
 
     await loadRoles(orgnr);
     await loadRegnskap(orgnr);
+    loadLei(orgnr);   // ikke await – vises asynkront i kortet
   }
 
   function fieldRow(label, value) {
@@ -513,6 +515,40 @@
       rc.innerHTML = html;
     } catch (_) {
       // utelat kortet ved feil
+    }
+  }
+
+  async function loadLei(orgnr) {
+    try {
+      const res = await fetch(
+        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.jurisdiction]=NO&page[size]=1`,
+        { headers: { accept: "application/vnd.api+json" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const record = data?.data?.[0];
+      if (!record) return;
+
+      const lei = record.id ?? record.attributes?.lei;
+      const status = record.attributes?.registration?.status ?? "";
+      if (!lei) return;
+
+      const leiRow = document.getElementById("leiRow");
+      if (!leiRow) return;
+
+      const statusBadge = status
+        ? ` <span style="font-size:0.75rem;padding:0.1rem 0.45rem;border-radius:4px;background:${status === "ISSUED" ? "#dcfce7" : "#fef9c3"};color:${status === "ISSUED" ? "#15803d" : "#854d0e"}">${esc(status)}</span>`
+        : "";
+      const id = "fr_" + Math.random().toString(36).slice(2);
+      leiRow.innerHTML = `
+        <div class="field-row">
+          <span class="field-label">LEI</span>
+          <span class="field-value" id="${id}">${esc(lei)}${statusBadge}</span>
+          <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
+        </div>`;
+      document.getElementById(id).dataset.copy = lei;
+    } catch (_) {
+      // utelat stille ved feil
     }
   }
 
