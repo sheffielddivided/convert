@@ -182,6 +182,37 @@
     .badge-yellow { background: #fef9c3; color: #854d0e; }
     .badge-red    { background: #fee2e2; color: #991b1b; }
 
+    /* ── Aksjonærtabell ── */
+    .aksjoner-table {
+      width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    }
+    .aksjoner-table th {
+      text-align: left; font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: #94a3b8; padding: 0 0 0.5rem; border-bottom: 2px solid #f1f5f9;
+    }
+    .aksjoner-table th.num, .aksjoner-table td.num {
+      text-align: right;
+    }
+    .aksjoner-table td {
+      padding: 0.45rem 0; border-bottom: 1px solid #f1f5f9; vertical-align: middle;
+    }
+    .aksjoner-table tr:last-child td { border-bottom: none; }
+    .aksjoner-table td.name { font-weight: 500; }
+    .aksjoner-table td.orgnr-link a { color: #2563eb; font-size: 0.82rem; text-decoration: none; }
+    .aksjoner-table td.orgnr-link a:hover { text-decoration: underline; }
+    .pct-bar-wrap {
+      display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;
+    }
+    .pct-bar {
+      width: 60px; height: 6px; background: #e2e8f0;
+      border-radius: 3px; overflow: hidden; flex-shrink: 0;
+    }
+    .pct-bar-fill { height: 100%; background: #2563eb; border-radius: 3px; }
+    .aksjoner-note {
+      font-size: 0.78rem; color: #94a3b8; margin-top: 0.75rem; text-align: right;
+    }
+
     /* ── Spinner ── */
     .spinner {
       display: inline-block; width: 17px; height: 17px;
@@ -238,6 +269,17 @@
     <div class="card-body" id="rolesCardBody"></div>
   </div>
 
+  <!-- Aksjonærer -->
+  <div id="aksjonaerCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon amber">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <h2>Aksjonærer</h2>
+    </div>
+    <div class="card-body" id="aksjonaerCardBody"></div>
+  </div>
+
   <!-- Regnskap -->
   <div id="regnskapCard" class="card hidden">
     <div class="card-header">
@@ -265,7 +307,7 @@
 
   function clearResults() {
     document.getElementById("resultsArea").innerHTML = "";
-    ["companyCard","rolesCard","regnskapCard"].forEach(id =>
+    ["companyCard","rolesCard","aksjonaerCard","regnskapCard"].forEach(id =>
       document.getElementById(id).classList.add("hidden")
     );
     document.getElementById("companyCardBody").innerHTML = "";
@@ -364,6 +406,7 @@
       '<div id="leiRow"></div>';
 
     await loadRoles(orgnr);
+    loadAksjonaerer(orgnr);
     await loadRegnskap(orgnr);
     loadLei(orgnr, navn);
   }
@@ -463,6 +506,82 @@
     return `<a class="search-link link-1881" href="https://www.1881.no/?query=${q1881}" target="_blank" rel="noopener">1881</a>` +
            `<a class="search-link link-li"   href="https://www.linkedin.com/search/results/all/?keywords=${qEnc}&origin=GLOBAL_SEARCH_HEADER" target="_blank" rel="noopener">LinkedIn</a>` +
            `<a class="search-link link-proff" href="https://www.proff.no/rolles%C3%B8k?q=${qEnc}" target="_blank" rel="noopener">Proff</a>`;
+  }
+
+  /* ── Aksjonærer ── */
+  async function loadAksjonaerer(orgnr) {
+    const card = document.getElementById("aksjonaerCard");
+    const body = document.getElementById("aksjonaerCardBody");
+    try {
+      const res = await fetch(
+        `https://www.aksjegrafen.com/api/investors?orgnr=${orgnr}&limit=10`,
+        { headers: { accept: "application/json" } }
+      );
+      if (!res.ok) { console.warn("Aksjegrafen:", res.status); return; }
+      const data = await res.json();
+
+      // Responsen kan være et array eller et objekt med en liste
+      const liste = Array.isArray(data) ? data
+        : (data.investors ?? data.data ?? data.results ?? data.shareholders ?? []);
+      if (!liste.length) return;
+
+      console.log("Aksjegrafen rådata (første rad):", JSON.stringify(liste[0], null, 2));
+
+      // Finn relevante feltnavn dynamisk fra første rad
+      const first = liste[0];
+      const nameKey  = ["name","navn","investorName","investor_name","shareholder"].find(k => k in first);
+      const pctKey   = ["percentage","pct","ownershipPercentage","ownership_percentage","andel","share"].find(k => k in first);
+      const sharesKey= ["shares","numberOfShares","number_of_shares","aksjer","antall"].find(k => k in first);
+      const orgnrKey = ["orgnr","organizationNumber","organization_number","investorOrgnr","investor_orgnr"].find(k => k in first);
+      const yearKey  = ["year","aar","år","regnskapsaar"].find(k => k in first);
+
+      if (!nameKey) { console.warn("Aksjegrafen: fant ikke navnefelt", first); return; }
+
+      const year = yearKey ? liste[0][yearKey] : null;
+      const maxPct = liste.reduce((m, r) => Math.max(m, parseFloat(r[pctKey] ?? 0)), 0);
+
+      let html = `<table class="aksjoner-table"><thead><tr>
+        <th>Aksjonær</th>
+        ${sharesKey ? '<th class="num">Aksjer</th>' : ""}
+        ${pctKey    ? '<th class="num">Eierandel</th>' : ""}
+      </tr></thead><tbody>`;
+
+      liste.forEach(r => {
+        const navn   = r[nameKey] ?? "–";
+        const pct    = pctKey   ? parseFloat(r[pctKey])   : null;
+        const shares = sharesKey ? parseInt(r[sharesKey], 10) : null;
+        const inv_orgnr = orgnrKey ? r[orgnrKey] : null;
+
+        const nameCell = inv_orgnr
+          ? `<td class="name"><div>${esc(navn)}</div><div class="orgnr-link"><a href="#" onclick="doLookup('${esc(inv_orgnr)}');return false">${esc(inv_orgnr)}</a></div></td>`
+          : `<td class="name">${esc(navn)}</td>`;
+
+        const sharesCell = sharesKey
+          ? `<td class="num">${shares != null ? shares.toLocaleString("nb-NO") : "–"}</td>` : "";
+
+        const barWidth = (pct != null && maxPct > 0) ? Math.round((pct / maxPct) * 60) : 0;
+        const pctCell  = pctKey
+          ? `<td class="num"><div class="pct-bar-wrap">
+              <div class="pct-bar"><div class="pct-bar-fill" style="width:${barWidth}px"></div></div>
+              ${pct != null ? pct.toLocaleString("nb-NO", {minimumFractionDigits:2, maximumFractionDigits:2}) + " %" : "–"}
+            </div></td>` : "";
+
+        html += `<tr>${nameCell}${sharesCell}${pctCell}</tr>`;
+      });
+
+      html += `</tbody></table>`;
+      if (year) html += `<p class="aksjoner-note">Kilde: Aksjegrafen · Sist oppdatert ${year}</p>`;
+
+      card.classList.remove("hidden");
+      body.innerHTML = html;
+    } catch (err) {
+      console.warn("Aksjegrafen feil:", err.message);
+    }
+  }
+
+  function doLookup(orgnr) {
+    document.getElementById("searchInput").value = orgnr;
+    doSearch();
   }
 
   /* ── Regnskap ── */
