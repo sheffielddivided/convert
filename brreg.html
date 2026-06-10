@@ -523,8 +523,13 @@
 
   async function loadLei(orgnr) {
     try {
+      const params = new URLSearchParams({
+        "filter[entity.registeredAs]": orgnr,
+        "filter[entity.legalJurisdiction]": "NO",
+        "page[size]": "5",
+      });
       const res = await fetch(
-        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.legalJurisdiction]=NO&page[size]=5`,
+        `https://api.gleif.org/api/v1/lei-records?${params}`,
         { headers: { accept: "application/vnd.api+json" } }
       );
       if (!res.ok) return;
