@@ -522,91 +522,96 @@ async function loadInterest() {
 }
 
 var cpiChartInstance = null, ppiChartInstance = null;
+var infCpi = null, infPpi = null, infN = 60;
+var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240}];
+
+function parseStat2(data, dim1Key, dim2Key) {
+  var tidCat = data.dimension[dim1Key].category;
+  var tidKeys = Object.keys(tidCat.index).sort(function(a,b){ return tidCat.index[a]-tidCat.index[b]; });
+  var contIdx = data.dimension[dim2Key].category.index;
+  var stride = data.size.slice(1).reduce(function(a,b){return a*b;}, 1);
+  var series = {};
+  Object.keys(contIdx).forEach(function(k){ series[k] = []; });
+  for (var i = 0; i < tidKeys.length; i++) {
+    var base = i * stride;
+    Object.keys(contIdx).forEach(function(k){ series[k].push(data.value[base + contIdx[k]]); });
+  }
+  return { labels: tidKeys, series: series };
+}
+
+function fmtPeriod(s) {
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var m = s.match(/(\d{4})M(\d{2})/);
+  if (m) return months[parseInt(m[2])-1] + '\u00a0' + m[1].slice(2);
+  var q = s.match(/(\d{4})K(\d)/);
+  if (q) return 'Q' + q[2] + ' ' + q[1];
+  return s;
+}
+
+function makeInflationChart(id, labels, values, color, bgColor) {
+  var ctx = document.getElementById(id).getContext('2d');
+  var grad = ctx.createLinearGradient(0, 0, 0, 260);
+  grad.addColorStop(0, bgColor); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: [{ data: values, borderColor: color, backgroundColor: grad, borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return (c.parsed.y != null ? c.parsed.y.toFixed(1) : '\u2014') + '%'; } } } },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } },
+        y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
+      }
+    }
+  });
+}
+
+function renderInflation(N) {
+  infN = N;
+  var el = document.getElementById('inflationContent');
+  var cpiLabels = infCpi.labels.slice(-N).map(fmtPeriod);
+  var cpi12m = infCpi.series['Tolvmanedersendring'].slice(-N);
+  var ppiLabels = infPpi.labels.slice(-N).map(fmtPeriod);
+  var ppi12m = infPpi.series['Tolvmanedersendring'].slice(-N);
+  var latestCpi = cpi12m[cpi12m.length-1];
+  var latestPpi = ppi12m[ppi12m.length-1];
+  function colVal(v) { return (v >= 0) ? 'var(--accent2)' : 'var(--red)'; }
+
+  var rangeBtns = '<div class="range-btns" id="infRangeBtns">' +
+    INF_RANGES.map(function(r) {
+      return '<button onclick="renderInflation(' + r.n + ')"' + (r.n === N ? ' class="active"' : '') + '>' + r.label + '</button>';
+    }).join('') + '</div>';
+
+  el.innerHTML =
+    rangeBtns +
+    '<div class="section-title">\ud83d\udcc8 Consumer Price Index (CPI)</div>' +
+    '<div class="inf-stat-row">' +
+      '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestCpi) + '">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
+      '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + cpiLabels[cpiLabels.length-1] + '</div></div>' +
+    '</div>' +
+    '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cpiChart"></canvas></div></div>' +
+    '<div class="section-title" style="margin-top:4px">\ud83c\udfed Producer Price Index (PPI)</div>' +
+    '<div class="inf-stat-row">' +
+      '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestPpi) + '">' + (latestPpi != null ? latestPpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
+      '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + ppiLabels[ppiLabels.length-1] + '</div></div>' +
+    '</div>' +
+    '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="ppiChart"></canvas></div></div>';
+
+  if (cpiChartInstance) cpiChartInstance.destroy();
+  if (ppiChartInstance) ppiChartInstance.destroy();
+  cpiChartInstance = makeInflationChart('cpiChart', cpiLabels, cpi12m, '#0055b3', 'rgba(0,85,179,0.15)');
+  ppiChartInstance = makeInflationChart('ppiChart', ppiLabels, ppi12m, '#16a34a', 'rgba(22,163,74,0.15)');
+}
 
 async function loadInflation() {
   var el = document.getElementById('inflationContent');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching inflation data\u2026</span></div>';
   var CPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/14700/data?lang=en&outputFormat=json-stat2&valuecodes[Tid]=*&codelist[VareTjenesteGrp]=vs_CoiCop2018Kpi01&valuecodes[ContentsCode]=KpiIndMnd,Tolvmanedersendring&heading=ContentsCode&stub=Tid';
   var PPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/12462/data?lang=en&outputFormat=json-stat2&valuecodes[ContentsCode]=Indeksnivo,Tolvmanedersendring&valuecodes[Tid]=*&valuecodes[NaringUtenriks]=SNN0&codelist[NaringUtenriks]=vs_NaringPPI1&heading=NaringUtenriks,ContentsCode&stub=Tid';
   try {
     var results = await Promise.all([fetch(CPI_URL), fetch(PPI_URL)]);
-    var cpiData = await results[0].json();
-    var ppiData = await results[1].json();
-
-    function parseStat2(data, dim1Key, dim2Key) {
-      var tidCat = data.dimension[dim1Key].category;
-      var tidKeys = Object.keys(tidCat.index).sort(function(a,b){ return tidCat.index[a]-tidCat.index[b]; });
-      var contCat = data.dimension[dim2Key].category;
-      var contIdx = contCat.index;
-      var stride = data.size.slice(1).reduce(function(a,b){return a*b;}, 1);
-      var n2 = data.size[data.size.length-1];
-      var series = {};
-      Object.keys(contIdx).forEach(function(k){ series[k] = []; });
-      for (var i = 0; i < tidKeys.length; i++) {
-        var base = i * stride;
-        Object.keys(contIdx).forEach(function(k){ series[k].push(data.value[base + contIdx[k]]); });
-      }
-      return { labels: tidKeys, series: series };
-    }
-
-    function fmtPeriod(s) {
-      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var m = s.match(/(\d{4})M(\d{2})/);
-      if (m) return months[parseInt(m[2])-1] + '\u00a0' + m[1].slice(2);
-      var q = s.match(/(\d{4})K(\d)/);
-      if (q) return 'Q' + q[2] + ' ' + q[1];
-      return s;
-    }
-
-    var cpi = parseStat2(cpiData, 'Tid', 'ContentsCode');
-    var ppi = parseStat2(ppiData, 'Tid', 'ContentsCode');
-    var N = 60;
-    var cpiLabels = cpi.labels.slice(-N).map(fmtPeriod);
-    var cpi12m = cpi.series['Tolvmanedersendring'].slice(-N);
-    var ppiLabels = ppi.labels.slice(-N).map(fmtPeriod);
-    var ppi12m = ppi.series['Tolvmanedersendring'].slice(-N);
-
-    var latestCpi = cpi12m[cpi12m.length-1];
-    var latestPpi = ppi12m[ppi12m.length-1];
-
-    function colVal(v) { return (v >= 0) ? 'var(--accent2)' : 'var(--red)'; }
-
-    el.innerHTML =
-      '<div class="section-title">📈 Consumer Price Index (CPI)</div>' +
-      '<div class="inf-stat-row">' +
-        '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestCpi) + '">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '—') + '</div></div>' +
-        '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + cpiLabels[cpiLabels.length-1] + '</div></div>' +
-      '</div>' +
-      '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cpiChart"></canvas></div></div>' +
-      '<div class="section-title" style="margin-top:4px">🏭 Producer Price Index (PPI)</div>' +
-      '<div class="inf-stat-row">' +
-        '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestPpi) + '">' + (latestPpi != null ? latestPpi.toFixed(1) + '%' : '—') + '</div></div>' +
-        '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + ppiLabels[ppiLabels.length-1] + '</div></div>' +
-      '</div>' +
-      '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="ppiChart"></canvas></div></div>';
-
-    function makeChart(id, labels, values, color, bgColor) {
-      var ctx = document.getElementById(id).getContext('2d');
-      var grad = ctx.createLinearGradient(0, 0, 0, 260);
-      grad.addColorStop(0, bgColor);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      return new Chart(ctx, {
-        type: 'line',
-        data: { labels: labels, datasets: [{ data: values, borderColor: color, backgroundColor: grad, borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3 }] },
-        options: { responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return (c.parsed.y != null ? c.parsed.y.toFixed(1) : '—') + '%'; } } } },
-          scales: {
-            x: { ticks: { color: '#64748b', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } },
-            y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
-          }
-        }
-      });
-    }
-
-    if (cpiChartInstance) cpiChartInstance.destroy();
-    if (ppiChartInstance) ppiChartInstance.destroy();
-    cpiChartInstance = makeChart('cpiChart', cpiLabels, cpi12m, '#0099ff', 'rgba(0,153,255,0.25)');
-    ppiChartInstance = makeChart('ppiChart', ppiLabels, ppi12m, '#00c853', 'rgba(0,200,83,0.25)');
-
+    infCpi = parseStat2(await results[0].json(), 'Tid', 'ContentsCode');
+    infPpi = parseStat2(await results[1].json(), 'Tid', 'ContentsCode');
+    renderInflation(infN);
   } catch(e) {
     el.innerHTML = '<div class="error-msg">Failed to load inflation data: ' + e.message + '</div>';
   }
