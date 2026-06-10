@@ -344,8 +344,11 @@
     setStatus("");
     const navn = enhet.navn ?? "–";
     const orgnr = enhet.organisasjonsnummer ?? "–";
-    const adresse = formatAddress(enhet.forretningsadresse) || "–";
-    const nett = enhet.hjemmeside ?? "–";
+    const adr = enhet.forretningsadresse;
+    const gate = adr ? (Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "")) : "";
+    const post = adr ? [adr.postnummer, adr.poststed].filter(Boolean).join(" ") : "";
+    const nett = enhet.hjemmeside ?? "";
+    const ansatte = enhet.antallAnsatte != null ? String(enhet.antallAnsatte) : "–";
 
     const cc = document.getElementById("companyCard");
     cc.classList.remove("hidden");
@@ -353,8 +356,9 @@
       <h2>Selskapsdata</h2>
       ${fieldRow("Navn", navn)}
       ${fieldRow("Org.nummer", orgnr)}
-      ${fieldRow("Forretningsadresse", adresse)}
-      ${fieldRow("Internettadresse", nett)}
+      ${fieldRowMultiline("Forretningsadresse", gate, post)}
+      ${fieldRowLink("Internettadresse", nett)}
+      ${fieldRow("Antall ansatte", ansatte)}
     `;
 
     await loadRoles(orgnr);
@@ -366,6 +370,32 @@
       <div class="field-row">
         <span class="field-label">${esc(label)}</span>
         <span class="field-value" id="${id}">${esc(value)}</span>
+        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
+      </div>`;
+  }
+
+  function fieldRowMultiline(label, line1, line2) {
+    const id = "fr_" + Math.random().toString(36).slice(2);
+    const display = [line1, line2].filter(Boolean).join("<br>");
+    const copyVal = [line1, line2].filter(Boolean).join(", ");
+    return `
+      <div class="field-row">
+        <span class="field-label">${esc(label)}</span>
+        <span class="field-value" id="${id}" data-copy="${esc(copyVal)}">${display || "–"}</span>
+        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
+      </div>`;
+  }
+
+  function fieldRowLink(label, url) {
+    const id = "fr_" + Math.random().toString(36).slice(2);
+    const href = url ? (url.match(/^https?:\/\//) ? url : "https://" + url) : "";
+    const display = url
+      ? `<a href="${esc(href)}" target="_blank" rel="noopener" style="color:#2563eb">${esc(url)}</a>`
+      : "–";
+    return `
+      <div class="field-row">
+        <span class="field-label">${esc(label)}</span>
+        <span class="field-value" id="${id}" data-copy="${esc(url)}">${display}</span>
         <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
       </div>`;
   }
@@ -425,7 +455,8 @@
   }
 
   function copyField(id, btn) {
-    const val = document.getElementById(id)?.innerText ?? "";
+    const el = document.getElementById(id);
+    const val = el?.dataset.copy ?? el?.innerText ?? "";
     navigator.clipboard.writeText(val).then(() => {
       btn.textContent = "Kopiert!";
       btn.classList.add("copied");
