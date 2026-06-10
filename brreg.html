@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BRREG-oppslag</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      margin: 0;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    #searchInput {
+      flex: 1;
+      padding: 0.65rem 0.9rem;
+      font-size: 1rem;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #searchInput:focus { border-color: #2563eb; }
+
+    button.primary {
+      padding: 0.65rem 1.2rem;
+      background: #2563eb;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    button.primary:hover { background: #1d4ed8; }
+    button.primary:disabled { background: #93c5fd; cursor: default; }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #555;
+      margin: 0 0 1rem;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .field-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #888;
+      width: 160px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .field-value {
+      font-size: 0.97rem;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .copy-btn {
+      padding: 0.2rem 0.55rem;
+      font-size: 0.75rem;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      cursor: pointer;
+      color: #475569;
+      transition: background 0.1s, color 0.1s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
+
+    .results-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .results-list li {
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .results-list li:hover { background: #f0f7ff; }
+    .results-list li + li { border-top: 1px solid #f0f0f0; }
+
+    .result-name { font-weight: 600; font-size: 0.97rem; }
+    .result-orgnr { font-size: 0.82rem; color: #666; }
+
+    .msg {
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .msg.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .msg.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .roles-group { margin-bottom: 1rem; }
+    .roles-group:last-child { margin-bottom: 0; }
+
+    .roles-group-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #2563eb;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.4rem;
+    }
+
+    .role-item {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.92rem;
+    }
+
+    .role-item:last-child { border-bottom: none; }
+
+    .role-type {
+      width: 180px;
+      flex-shrink: 0;
+      color: #555;
+      font-size: 0.85rem;
+    }
+
+    .role-person { font-weight: 500; }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #93c5fd;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status { margin-bottom: 0.75rem; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>BRREG-oppslag</h1>
+  <p class="subtitle">Søk på organisasjonsnummer (9 siffer) eller selskapsnavn</p>
+
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Organisasjonsnummer eller navn…" autocomplete="off">
+    <button class="primary" id="searchBtn" onclick="doSearch()">Søk</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="resultsArea"></div>
+  <div id="companyCard" class="hidden"></div>
+  <div id="rolesCard" class="hidden"></div>
+</div>
+
+<script>
+  const API = "https://data.brreg.no/enhetsregisteret/api";
+
+  document.getElementById("searchInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") doSearch();
+  });
+
+  function isOrgNr(q) {
+    return /^[\d\s]+$/.test(q);
+  }
+
+  function normalizeOrgNr(q) {
+    return q.replace(/\s/g, "");
+  }
+
+  function setStatus(html) {
+    document.getElementById("status").innerHTML = html || "";
+  }
+
+  function clearResults() {
+    document.getElementById("resultsArea").innerHTML = "";
+    document.getElementById("companyCard").classList.add("hidden");
+    document.getElementById("rolesCard").classList.add("hidden");
+  }
+
+  async function doSearch() {
+    const raw = document.getElementById("searchInput").value.trim();
+    if (!raw) return;
+
+    clearResults();
+    setStatus('<span class="spinner"></span> Søker…');
+    document.getElementById("searchBtn").disabled = true;
+
+    try {
+      if (isOrgNr(raw)) {
+        const orgnr = normalizeOrgNr(raw);
+        if (orgnr.length !== 9) {
+          setStatus('<div class="msg warning">Organisasjonsnummer må være 9 siffer.</div>');
+          return;
+        }
+        await lookupByOrgNr(orgnr);
+      } else {
+        await searchByName(raw);
+      }
+    } catch (err) {
+      setStatus(`<div class="msg error">Feil ved oppslag: ${err.message}</div>`);
+    } finally {
+      document.getElementById("searchBtn").disabled = false;
+    }
+  }
+
+  async function lookupByOrgNr(orgnr) {
+    const res = await fetch(`${API}/enheter/${orgnr}`);
+    if (res.status === 404) {
+      setStatus('<div class="msg warning">Ingen enhet funnet med dette organisasjonsnummeret.</div>');
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const enhet = await res.json();
+    setStatus("");
+    await showCompany(enhet);
+  }
+
+  async function searchByName(name) {
+    const url = `${API}/enheter?navn=${encodeURIComponent(name)}&size=6`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const enheter = data._embedded?.enheter ?? [];
+    const total = data.page?.totalElements ?? 0;
+
+    if (total === 0) {
+      setStatus('<div class="msg warning">Ingen treff på dette søket.</div>');
+      return;
+    }
+
+    if (total === 1 || enheter.length === 1) {
+      setStatus("");
+      await showCompany(enheter[0]);
+      return;
+    }
+
+    setStatus("");
+    showResultList(enheter, total);
+  }
+
+  function showResultList(enheter, total) {
+    const area = document.getElementById("resultsArea");
+    let html = '<div class="card">';
+    html += '<h2>Velg selskap</h2>';
+
+    if (total >= 6) {
+      html += '<div class="msg info" style="margin-bottom:0.9rem">Søket ga flere treff enn det som vises. Gjør søkekriteriene mer presise for å snevre inn resultatet.</div>';
+    }
+
+    const visible = enheter.slice(0, 5);
+    html += '<ul class="results-list">';
+    visible.forEach((e, i) => {
+      const adr = formatAddress(e.forretningsadresse);
+      html += `<li onclick="selectCompany(${i})">
+        <span class="result-name">${esc(e.navn)}</span>
+        <span class="result-orgnr">Org.nr: ${esc(e.organisasjonsnummer)}${adr ? " · " + esc(adr) : ""}</span>
+      </li>`;
+    });
+    html += "</ul></div>";
+    area.innerHTML = html;
+    area._enheter = enheter;
+  }
+
+  async function selectCompany(idx) {
+    const enheter = document.getElementById("resultsArea")._enheter;
+    const enhet = enheter[idx];
+    document.getElementById("resultsArea").innerHTML = "";
+    setStatus('<span class="spinner"></span> Henter selskapsdata…');
+    await showCompany(enhet);
+  }
+
+  async function showCompany(enhet) {
+    setStatus("");
+    const navn = enhet.navn ?? "–";
+    const orgnr = enhet.organisasjonsnummer ?? "–";
+    const adresse = formatAddress(enhet.forretningsadresse) || "–";
+    const nett = enhet.hjemmeside ?? "–";
+
+    const cc = document.getElementById("companyCard");
+    cc.classList.remove("hidden");
+    cc.innerHTML = `
+      <h2>Selskapsdata</h2>
+      ${fieldRow("Navn", navn)}
+      ${fieldRow("Org.nummer", orgnr)}
+      ${fieldRow("Forretningsadresse", adresse)}
+      ${fieldRow("Internettadresse", nett)}
+    `;
+
+    await loadRoles(orgnr);
+  }
+
+  function fieldRow(label, value) {
+    const id = "fr_" + Math.random().toString(36).slice(2);
+    return `
+      <div class="field-row">
+        <span class="field-label">${esc(label)}</span>
+        <span class="field-value" id="${id}">${esc(value)}</span>
+        <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
+      </div>`;
+  }
+
+  async function loadRoles(orgnr) {
+    const rc = document.getElementById("rolesCard");
+    rc.classList.remove("hidden");
+    rc.innerHTML = '<h2>Roller / personer</h2><span class="spinner"></span> Henter roller…';
+
+    try {
+      const res = await fetch(`${API}/enheter/${orgnr}/roller`);
+      if (res.status === 404) {
+        rc.innerHTML = '<h2>Roller / personer</h2><div class="msg info">Ingen roller registrert.</div>';
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const grupper = data.rollegrupper ?? [];
+
+      if (grupper.length === 0) {
+        rc.innerHTML = '<h2>Roller / personer</h2><div class="msg info">Ingen roller registrert.</div>';
+        return;
+      }
+
+      let html = '<h2>Roller / personer</h2>';
+      grupper.forEach(gruppe => {
+        const gruppeNavn = gruppe.type?.beskrivelse ?? gruppe.type?.kode ?? "Ukjent gruppe";
+        html += `<div class="roles-group"><div class="roles-group-title">${esc(gruppeNavn)}</div>`;
+        (gruppe.roller ?? []).forEach(rolle => {
+          const rolleType = rolle.type?.beskrivelse ?? rolle.type?.kode ?? "–";
+          let personNavn = "–";
+          if (rolle.person?.navn) {
+            const n = rolle.person.navn;
+            personNavn = [n.fornavn, n.mellomnavn, n.etternavn].filter(Boolean).join(" ");
+          } else if (rolle.enhet?.navn) {
+            personNavn = rolle.enhet.navn;
+          }
+          html += `<div class="role-item">
+            <span class="role-type">${esc(rolleType)}</span>
+            <span class="role-person">${esc(personNavn)}</span>
+          </div>`;
+        });
+        html += "</div>";
+      });
+
+      rc.innerHTML = html;
+    } catch (err) {
+      rc.innerHTML = `<h2>Roller / personer</h2><div class="msg error">Kunne ikke hente roller: ${esc(err.message)}</div>`;
+    }
+  }
+
+  function formatAddress(adr) {
+    if (!adr) return "";
+    const gateadresse = Array.isArray(adr.adresse) ? adr.adresse.join(", ") : (adr.adresse ?? "");
+    const post = [adr.postnummer, adr.poststed].filter(Boolean).join(" ");
+    return [gateadresse, post].filter(Boolean).join(", ");
+  }
+
+  function copyField(id, btn) {
+    const val = document.getElementById(id)?.innerText ?? "";
+    navigator.clipboard.writeText(val).then(() => {
+      btn.textContent = "Kopiert!";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = "Kopier";
+        btn.classList.remove("copied");
+      }, 1800);
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = val;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      btn.textContent = "Kopiert!";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Kopier"; btn.classList.remove("copied"); }, 1800);
+    });
+  }
+
+  function esc(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+</script>
+</body>
+</html>
