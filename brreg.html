@@ -220,6 +220,7 @@
   <div id="resultsArea"></div>
   <div id="companyCard" class="hidden"></div>
   <div id="rolesCard" class="hidden"></div>
+  <div id="regnskapCard" class="card hidden"></div>
 </div>
 
 <script>
@@ -245,6 +246,7 @@
     document.getElementById("resultsArea").innerHTML = "";
     document.getElementById("companyCard").classList.add("hidden");
     document.getElementById("rolesCard").classList.add("hidden");
+    document.getElementById("regnskapCard").classList.add("hidden");
   }
 
   async function doSearch() {
@@ -362,6 +364,7 @@
     `;
 
     await loadRoles(orgnr);
+    await loadRegnskap(orgnr);
   }
 
   function fieldRow(label, value) {
@@ -445,6 +448,77 @@
     } catch (err) {
       rc.innerHTML = `<h2>Roller / personer</h2><div class="msg error">Kunne ikke hente roller: ${esc(err.message)}</div>`;
     }
+  }
+
+  async function loadRegnskap(orgnr) {
+    try {
+      const res = await fetch(
+        `https://data.brreg.no/regnskapsregisteret/regnskap/${orgnr}?regnskapstype=SELSKAP`,
+        { headers: { accept: "application/json" } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const liste = Array.isArray(data) ? data : (data._embedded?.regnskaper ?? []);
+      if (!liste.length) return;
+
+      // Bruk siste tilgjengelige regnskap (sortert etter tilDato desc)
+      liste.sort((a, b) => {
+        const tA = a.regnskapsperiode?.tilDato ?? "";
+        const tB = b.regnskapsperiode?.tilDato ?? "";
+        return tB.localeCompare(tA);
+      });
+      const r = liste[0];
+
+      const periode = r.regnskapsperiode;
+      const aar = periode?.tilDato ? periode.tilDato.slice(0, 4) : "–";
+      const fra = periode?.fraDato ?? "";
+      const til = periode?.tilDato ?? "";
+      const periodeTekst = fra && til ? `${fra} – ${til}` : aar;
+
+      const res2 = r.resultatregnskapResultat ?? {};
+      const drift = res2.driftsresultat ?? {};
+      const inntekter = drift.driftsinntekter?.sumDriftsinntekter ?? res2.sumInntekter ?? null;
+      const driftsres = drift.driftsresultat ?? null;
+      const ordinaert = res2.ordinaertResultatFoerSkattekostnad ?? null;
+      const aarsresultat = res2.aarsresultat ?? null;
+
+      const eiendeler = r.eiendeler ?? {};
+      const sumEiendeler = eiendeler.sumEiendeler ?? null;
+      const ekg = r.egenkapitalGjeld ?? {};
+      const sumEk = ekg.egenkapital?.sumEgenkapital ?? null;
+      const sumGjeld = ekg.gjeld?.sumGjeld ?? null;
+
+      const rows = [
+        ["Regnskapsperiode", periodeTekst],
+        ["Driftsinntekter", nok(inntekter)],
+        ["Driftsresultat", nok(driftsres)],
+        ["Res. før skatt", nok(ordinaert)],
+        ["Årsresultat", nok(aarsresultat)],
+        ["Sum eiendeler", nok(sumEiendeler)],
+        ["Sum egenkapital", nok(sumEk)],
+        ["Sum gjeld", nok(sumGjeld)],
+      ].filter(([, v]) => v !== null);
+
+      if (!rows.length) return;
+
+      const rc = document.getElementById("regnskapCard");
+      rc.classList.remove("hidden");
+      let html = `<h2>Regnskap (siste tilgjengelige)</h2>`;
+      rows.forEach(([label, value]) => {
+        html += `<div class="field-row">
+          <span class="field-label">${esc(label)}</span>
+          <span class="field-value">${esc(value)}</span>
+        </div>`;
+      });
+      rc.innerHTML = html;
+    } catch (_) {
+      // utelat kortet ved feil
+    }
+  }
+
+  function nok(val) {
+    if (val == null) return null;
+    return Number(val).toLocaleString("nb-NO", { maximumFractionDigits: 0 }) + " kr";
   }
 
   function formatAddress(adr) {
