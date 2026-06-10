@@ -13,71 +13,72 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0a0f1a;--card:#141b2d;--card-hover:#1a2340;--accent:#0066cc;--accent2:#0099ff;--text:#f0f0f5;--text2:#8892a4;--border:#1e2a42;--green:#00c853;--red:#ff3d57;--safe-bottom:env(safe-area-inset-bottom,0px)}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;padding-bottom:20px;min-height:100vh;min-height:100dvh}
-.header{position:sticky;top:0;z-index:100;background:rgba(10,15,26,0.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:calc(env(safe-area-inset-top,20px) + 8px) 20px 12px;border-bottom:1px solid var(--border)}
-.header h1{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+:root{--bg:#f0f4f8;--card:#ffffff;--card-hover:#f8fafc;--accent:#0055b3;--accent2:#0066cc;--text:#1a2035;--text2:#64748b;--border:#dde3ed;--green:#16a34a;--red:#dc2626;--safe-bottom:env(safe-area-inset-bottom,0px)}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;padding-bottom:24px;min-height:100vh;min-height:100dvh}
+.header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:calc(env(safe-area-inset-top,16px) + 8px) 20px 0;border-bottom:1px solid var(--border);box-shadow:0 2px 12px rgba(0,0,0,0.07)}
+.header h1{font-size:20px;font-weight:800;letter-spacing:-0.4px;color:var(--text)}
 .header .subtitle{font-size:12px;color:var(--text2);margin-top:2px}
-.tab-bar{display:flex;margin-top:8px;margin-left:-20px;margin-right:-20px;border-top:1px solid var(--border)}
-.tab-bar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 0;border:none;background:none;color:var(--text2);font-size:10px;font-family:inherit;cursor:pointer;transition:color .2s}
-.tab-bar button.active{color:var(--accent2)}
-.tab-bar button .icon{font-size:20px;line-height:1}
+.tab-bar{display:flex;gap:6px;margin-top:10px;margin-left:-20px;margin-right:-20px;padding:10px 14px;border-top:1px solid var(--border);background:transparent}
+.tab-bar button{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:10px 6px;border:2px solid transparent;background:var(--bg);color:var(--text2);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border-radius:12px;transition:all .18s}
+.tab-bar button.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 3px 10px rgba(0,85,179,0.3)}
+.tab-bar button:not(.active):hover{background:#e4ecf7;color:var(--accent);border-color:#c8d9f0}
+.tab-bar button .icon{font-size:17px;line-height:1}
 .inf-stat-row{display:flex;gap:12px;margin-bottom:16px}
-.view{display:none;padding:16px;animation:fadeIn .3s ease}
+.view{display:none;padding:18px 16px;animation:fadeIn .25s ease}
 .view.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .date-label{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
-.date-label::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green)}
+.date-label::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green)}
 .currency-list{display:flex;flex-direction:column;gap:10px}
-.currency-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
-.currency-card:active{background:var(--card-hover);transform:scale(0.98)}
+.currency-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .18s;-webkit-user-select:none;user-select:none;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.currency-card:active{background:var(--card-hover);transform:scale(0.98);box-shadow:none}
 .cc-left{display:flex;align-items:center;gap:12px}
-.cc-code{font-size:18px;font-weight:700;width:48px}
+.cc-code{font-size:18px;font-weight:700;width:48px;color:var(--text)}
 .cc-name{font-size:13px;color:var(--text2);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cc-rate{font-size:20px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.cc-rate{font-size:20px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
 .cc-arrow{color:var(--text2);margin-left:8px;font-size:16px}
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:14px;color:var(--text2)}
-.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.8);display:none;align-items:flex-end;justify-content:center;animation:fadeModal .25s ease}
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.45);display:none;align-items:flex-end;justify-content:center;animation:fadeModal .25s ease}
 .modal-overlay.show{display:flex}
 @keyframes fadeModal{from{opacity:0}to{opacity:1}}
-.modal{background:var(--bg);width:100%;max-width:500px;height:92vh;border-radius:20px 20px 0 0;padding:20px;display:flex;flex-direction:column;animation:slideUp .3s ease;overflow-y:auto}
+.modal{background:var(--card);width:100%;max-width:500px;height:92vh;border-radius:24px 24px 0 0;padding:20px;display:flex;flex-direction:column;animation:slideUp .3s ease;overflow-y:auto;box-shadow:0 -4px 30px rgba(0,0,0,0.15)}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:36px;height:5px;border-radius:3px;background:var(--border);margin:0 auto 16px}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.modal-header h2{font-size:22px;font-weight:700}
-.modal-close{width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.modal-header h2{font-size:22px;font-weight:700;color:var(--text)}
+.modal-close{width:32px;height:32px;border-radius:50%;background:var(--bg);border:1px solid var(--border);color:var(--text2);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .range-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.range-btns button{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .2s}
+.range-btns button{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .18s;font-weight:500}
 .range-btns button.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .chart-container{flex:1;min-height:250px;position:relative}
 .chart-stats{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
-.stat-box{flex:1;min-width:80px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
-.stat-box .label{font-size:11px;color:var(--text2);margin-bottom:4px}
-.stat-box .value{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
-.policy-rate-card{background:linear-gradient(135deg,#0a2463,#0066cc);border-radius:18px;padding:28px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s}
+.stat-box{flex:1;min-width:80px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
+.stat-box .label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500}
+.stat-box .value{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.policy-rate-card{background:linear-gradient(135deg,#003d99,#0066cc);border-radius:20px;padding:28px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s;box-shadow:0 4px 20px rgba(0,85,179,0.3)}
 .policy-rate-card:active{transform:scale(0.97)}
-.policy-rate-card::after{content:'';position:absolute;top:-30%;right:-15%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05)}
-.policy-rate-card .pr-label{font-size:14px;opacity:0.8;letter-spacing:0.5px;text-transform:uppercase}
-.policy-rate-card .pr-value{font-size:52px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums}
-.policy-rate-card .pr-sub{font-size:13px;opacity:0.7}
-.section-title{font-size:16px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.yield-chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+.policy-rate-card::after{content:'';position:absolute;top:-30%;right:-15%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.07)}
+.policy-rate-card .pr-label{font-size:13px;opacity:0.85;letter-spacing:0.6px;text-transform:uppercase;color:#fff}
+.policy-rate-card .pr-value{font-size:52px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums;color:#fff}
+.policy-rate-card .pr-sub{font-size:13px;opacity:0.75;color:#fff}
+.section-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--text);text-transform:uppercase;letter-spacing:0.4px}
+.yield-chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .yield-chart-inner{height:260px;position:relative}
-.rates-table{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.rates-table{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .rates-table .rt-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
 .rates-table .rt-row:last-child{border-bottom:none}
-.rates-table .rt-tenor{font-weight:600;font-size:15px}
-.rates-table .rt-rate{font-size:16px;font-variant-numeric:tabular-nums;color:var(--accent2)}
+.rates-table .rt-tenor{font-weight:600;font-size:15px;color:var(--text)}
+.rates-table .rt-rate{font-size:16px;font-variant-numeric:tabular-nums;color:var(--accent)}
 .error-msg{color:var(--red);text-align:center;padding:20px;font-size:14px}
-.refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;margin-left:auto;transition:all .2s}
+.refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);padding:7px 14px;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;margin-left:auto;transition:all .18s;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .refresh-btn:active{background:var(--card-hover);transform:scale(0.95)}
-.press-release-link{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none;text-decoration:none;color:var(--text)}
+.press-release-link{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .18s;-webkit-user-select:none;user-select:none;text-decoration:none;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .press-release-link:active{background:var(--card-hover);transform:scale(0.98)}
 .press-release-link .prl-icon{font-size:24px;flex-shrink:0}
 .press-release-link .prl-text{flex:1;min-width:0}
-.press-release-link .prl-title{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.press-release-link .prl-title{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--text)}
 .press-release-link .prl-date{font-size:11px;color:var(--text2);margin-top:3px}
 .press-release-link .prl-arrow{color:var(--text2);font-size:18px;flex-shrink:0}
 </style>
@@ -311,8 +312,8 @@ async function loadHistorical(cur, days) {
     histChartInstance = new Chart(ctx, {
       type: 'line', data: { labels: dates, datasets: [{ data: values, borderColor: lineColor, backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0, pointHitRadius: 10, borderWidth: 2 }] },
       options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(20,27,45,0.95)', titleColor: '#f0f0f5', bodyColor: '#f0f0f5', borderColor: '#1e2a42', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return cur + '/NOK: ' + c.parsed.y.toFixed(4); } } } },
-        scales: { x: { display: true, ticks: { color: '#8892a4', maxTicksLimit: 6, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(30,42,66,0.5)' } }, y: { display: true, ticks: { color: '#8892a4', font: { size: 11 }, callback: function(v) { return v.toFixed(2); } }, grid: { color: 'rgba(30,42,66,0.5)' } } } }
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return cur + '/NOK: ' + c.parsed.y.toFixed(4); } } } },
+        scales: { x: { display: true, ticks: { color: '#64748b', maxTicksLimit: 6, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { display: true, ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2); } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
     });
     stats.innerHTML = '<div class="stat-box"><div class="label">Current</div><div class="value">' + curVal.toFixed(4) + '</div></div><div class="stat-box"><div class="label">Min</div><div class="value">' + minVal.toFixed(4) + '</div></div><div class="stat-box"><div class="label">Max</div><div class="value">' + maxVal.toFixed(4) + '</div></div><div class="stat-box"><div class="label">Change</div><div class="value" style="color:' + lineColor + '">' + (change >= 0 ? '+' : '') + changePct + '%</div></div>';
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load historical data. Please try again.</div>'; }
@@ -345,8 +346,8 @@ async function loadPolicyRateHistorical(days) {
     histChartInstance = new Chart(ctx, {
       type: 'line', data: { labels: dates, datasets: [{ data: values, borderColor: '#0099ff', backgroundColor: gradient, fill: true, stepped: 'before', pointRadius: 0, pointHitRadius: 10, borderWidth: 2.5 }] },
       options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(20,27,45,0.95)', titleColor: '#f0f0f5', bodyColor: '#f0f0f5', borderColor: '#1e2a42', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return 'Policy Rate: ' + c.parsed.y.toFixed(2) + '%'; } } } },
-        scales: { x: { display: true, ticks: { color: '#8892a4', maxTicksLimit: 6, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(30,42,66,0.5)' } }, y: { display: true, ticks: { color: '#8892a4', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(30,42,66,0.5)' } } } }
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return 'Policy Rate: ' + c.parsed.y.toFixed(2) + '%'; } } } },
+        scales: { x: { display: true, ticks: { color: '#64748b', maxTicksLimit: 6, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { display: true, ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
     });
     var changeBps = (change * 100).toFixed(0);
     stats.innerHTML = '<div class="stat-box"><div class="label">Current</div><div class="value">' + curVal.toFixed(2) + '%</div></div><div class="stat-box"><div class="label">Min</div><div class="value">' + minVal.toFixed(2) + '%</div></div><div class="stat-box"><div class="label">Max</div><div class="value">' + maxVal.toFixed(2) + '%</div></div><div class="stat-box"><div class="label">Change</div><div class="value" style="color:' + lineColor + '">' + (change >= 0 ? '+' : '') + changeBps + ' bps</div></div>';
@@ -428,12 +429,12 @@ async function loadInterest() {
     var yieldValues = tenorLabels.map(function(t) { return rateMap[t]; });
     var ctx = document.getElementById('yieldChart').getContext('2d');
     var grad = ctx.createLinearGradient(0, 0, 0, 260);
-    grad.addColorStop(0, 'rgba(0,102,204,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+    grad.addColorStop(0, 'rgba(0,102,204,0.2)'); grad.addColorStop(1, 'rgba(0,102,204,0)');
     new Chart(ctx, {
       type: 'line', data: { labels: tenorLabels, datasets: [{ data: yieldValues, borderColor: '#0099ff', backgroundColor: grad, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#0099ff', pointBorderColor: '#0a0f1a', pointBorderWidth: 2, borderWidth: 2.5 }] },
       options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(20,27,45,0.95)', titleColor: '#f0f0f5', bodyColor: '#f0f0f5', borderColor: '#1e2a42', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return c.parsed.y.toFixed(3) + '%'; } } } },
-        scales: { x: { ticks: { color: '#8892a4', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(30,42,66,0.5)' } }, y: { ticks: { color: '#8892a4', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(30,42,66,0.5)' } } } }
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return c.parsed.y.toFixed(3) + '%'; } } } },
+        scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
     });
     loadPolicyPressRelease();
   } catch(e) { container.innerHTML = '<div class="error-msg">Failed to load interest rate data. Please try again.</div>'; }
@@ -511,10 +512,10 @@ async function loadInflation() {
         type: 'line',
         data: { labels: labels, datasets: [{ data: values, borderColor: color, backgroundColor: grad, borderWidth: 2, pointRadius: 0, fill: true, tension: 0.3 }] },
         options: { responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(20,27,45,0.95)', titleColor: '#f0f0f5', bodyColor: '#f0f0f5', borderColor: '#1e2a42', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return (c.parsed.y != null ? c.parsed.y.toFixed(1) : '—') + '%'; } } } },
+          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return (c.parsed.y != null ? c.parsed.y.toFixed(1) : '—') + '%'; } } } },
           scales: {
-            x: { ticks: { color: '#8892a4', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(30,42,66,0.6)' } },
-            y: { ticks: { color: '#8892a4', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(30,42,66,0.6)' } }
+            x: { ticks: { color: '#64748b', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } },
+            y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
           }
         }
       });
