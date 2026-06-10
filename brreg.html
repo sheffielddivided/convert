@@ -501,7 +501,7 @@
       body.innerHTML = rows.map(([label, value]) =>
         `<div class="field-row">
           <span class="field-label">${esc(label)}</span>
-          <span class="field-value">${esc(value)}</span>
+          <span class="field-value" style="text-align:right;font-variant-numeric:tabular-nums">${esc(value)}</span>
         </div>`
       ).join("");
     } catch (_) { }
