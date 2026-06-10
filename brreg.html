@@ -524,16 +524,27 @@
   async function loadLei(orgnr) {
     try {
       const res = await fetch(
-        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.jurisdiction]=NO&filter[registration.status]=ISSUED&page[size]=1`,
+        `https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${orgnr}&filter[entity.legalJurisdiction]=NO&page[size]=5`,
         { headers: { accept: "application/vnd.api+json" } }
       );
       if (!res.ok) return;
       const data = await res.json();
-      const record = data?.data?.[0];
-      if (!record) return;
+      const records = data?.data ?? [];
+      if (!records.length) return;
+
+      // Foretrekk ISSUED fremfor andre statuser
+      const statusOrder = ["ISSUED", "PENDING_TRANSFER", "PENDING_ARCHIVAL", "LAPSED", "DUPLICATE", "RETIRED", "ANNULLED", "CANCELLED", "TRANSFERRED", "MERGED"];
+      records.sort((a, b) => {
+        const sA = a.attributes?.registration?.status ?? "";
+        const sB = b.attributes?.registration?.status ?? "";
+        return (statusOrder.indexOf(sA) + 1 || 99) - (statusOrder.indexOf(sB) + 1 || 99);
+      });
+      const record = records[0];
 
       const lei = record.id ?? record.attributes?.lei;
-      const status = record.attributes?.registration?.status ?? "";
+      const reg = record.attributes?.registration ?? {};
+      const status = reg.status ?? "";
+      const renewalRaw = reg.nextRenewalDate ?? "";
       if (!lei) return;
 
       const leiRow = document.getElementById("leiRow");
@@ -542,14 +553,30 @@
       const statusBadge = status
         ? ` <span style="font-size:0.75rem;padding:0.1rem 0.45rem;border-radius:4px;background:${status === "ISSUED" ? "#dcfce7" : "#fef9c3"};color:${status === "ISSUED" ? "#15803d" : "#854d0e"}">${esc(status)}</span>`
         : "";
-      const id = "fr_" + Math.random().toString(36).slice(2);
-      leiRow.innerHTML = `
+      const leiId = "fr_" + Math.random().toString(36).slice(2);
+      let html = `
         <div class="field-row">
           <span class="field-label">LEI</span>
-          <span class="field-value" id="${id}">${esc(lei)}${statusBadge}</span>
-          <button class="copy-btn" onclick="copyField('${id}', this)">Kopier</button>
+          <span class="field-value" id="${leiId}" data-copy="${esc(lei)}">${esc(lei)}${statusBadge}</span>
+          <button class="copy-btn" onclick="copyField('${leiId}', this)">Kopier</button>
         </div>`;
-      document.getElementById(id).dataset.copy = lei;
+
+      if (renewalRaw) {
+        const renewalDate = new Date(renewalRaw).toLocaleDateString("nb-NO", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const isOverdue = new Date(renewalRaw) < new Date();
+        const renewId = "fr_" + Math.random().toString(36).slice(2);
+        const overdueFlag = isOverdue
+          ? ` <span style="font-size:0.75rem;padding:0.1rem 0.45rem;border-radius:4px;background:#fee2e2;color:#991b1b">Forfalt</span>`
+          : "";
+        html += `
+        <div class="field-row">
+          <span class="field-label">LEI-fornyelse</span>
+          <span class="field-value" id="${renewId}" data-copy="${esc(renewalDate)}">${esc(renewalDate)}${overdueFlag}</span>
+          <button class="copy-btn" onclick="copyField('${renewId}', this)">Kopier</button>
+        </div>`;
+      }
+
+      leiRow.innerHTML = html;
     } catch (_) {
       // utelat stille ved feil
     }
