@@ -431,12 +431,13 @@ async function loadFedHistorical(days) {
   var start = new Date(); start.setDate(start.getDate() - days);
   var sp = start.toISOString().slice(0, 10);
   try {
-    var _fedHistUrl = 'https://markets.newyorkfed.org/api/rates/effr/search.json?startDate=' + sp + '&type=rate';
-    var res = await fetch(_fedHistUrl);
+    var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
+    var _fedHistUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
+    var res = await fetch(_fedHistUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl)); });
     var json = await res.json();
-    var obs = (json.refRates || []).slice().reverse();
-    var labels = obs.map(function(o) { return o.effectiveDate; });
-    var values = obs.map(function(o) { return o.percentRate; });
+    var obs = (json.observations || []).filter(function(o){ return o.value !== '.'; });
+    var labels = obs.map(function(o) { return o.date; });
+    var values = obs.map(function(o) { return parseFloat(o.value); });
     histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#dc2626', 'rgba(220,38,38,0.18)');
     makeRateStats(stats, values);
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load Fed data</div>'; }
@@ -582,20 +583,21 @@ async function loadInterest() {
   var container = document.getElementById('interestContent');
   container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching interest rates\u2026</span></div>';
   try {
-    var _fredCurUrl = 'https://markets.newyorkfed.org/api/rates/effr/last/1.json';
+    var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
+    var _fredCurUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&sort_order=desc&limit=1&file_type=json';
     var _sixMoAgo = new Date(); _sixMoAgo.setMonth(_sixMoAgo.getMonth()-6);
     var _ecbCurUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + _sixMoAgo.toISOString().slice(0,10);
     var [prRes, fedRes, ecbRes] = await Promise.all([
       fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no'),
-      fetch(_fredCurUrl).catch(function(){return null;}),
+      fetch(_fredCurUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fredCurUrl)).catch(function(){return null;}); }),
       fetch(_ecbCurUrl).catch(function(){return null;})
     ]);
     var prJson = await prRes.json();
     var fedRate = null, fedDate = '';
     try {
       var fedJson = await fedRes.json();
-      var fedObs = fedJson.refRates;
-      if (fedObs && fedObs.length) { fedRate = fedObs[0].percentRate; fedDate = fedObs[0].effectiveDate; }
+      var fedObs = fedJson.observations;
+      if (fedObs && fedObs.length) { var fo = fedObs[0]; fedRate = parseFloat(fo.value); fedDate = fo.date; }
     } catch(e) {}
     var ecbRate = null, ecbDate = '';
     try {
