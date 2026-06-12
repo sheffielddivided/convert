@@ -23,7 +23,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .tab-bar button.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 3px 10px rgba(0,85,179,0.3)}
 .tab-bar button:not(.active):hover{background:#e4ecf7;color:var(--accent);border-color:#c8d9f0}
 .tab-bar button .icon{font-size:17px;line-height:1}
-.inf-stat-row{display:flex;gap:12px;margin-bottom:16px}
+.cb-rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.cb-rate-card{border-radius:18px;padding:20px 14px;text-align:center;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s;position:relative;overflow:hidden}
+.cb-rate-card:active{transform:scale(0.97)}
+.cb-rate-card .cr-flag{font-size:24px;margin-bottom:4px}
+.cb-rate-card .cr-label{font-size:10px;opacity:0.85;letter-spacing:0.5px;text-transform:uppercase;color:#fff}
+.cb-rate-card .cr-value{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;margin:6px 0 2px}
+.cb-rate-card .cr-sub{font-size:11px;opacity:0.7;color:#fff}
+.cb-rate-card.fed{background:linear-gradient(135deg,#7f1d1d,#dc2626);box-shadow:0 4px 16px rgba(220,38,38,0.28)}
+.cb-rate-card.ecb{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);box-shadow:0 4px 16px rgba(29,78,216,0.28)}
 .view{display:none;padding:18px 16px;animation:fadeIn .25s ease}
 .view.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -330,11 +338,10 @@ function setRangeButtons(buttons, activeDays) {
       container.querySelectorAll('button').forEach(function(x) { x.classList.remove('active'); });
       btn.classList.add('active');
       var days = parseInt(btn.dataset.range);
-      if (currentModalType === 'policyrate') {
-        loadPolicyRateHistorical(days);
-      } else {
-        loadHistorical(currentModalCur, days);
-      }
+      if (currentModalType === 'policyrate') { loadPolicyRateHistorical(days); }
+      else if (currentModalType === 'fed') { loadFedHistorical(days); }
+      else if (currentModalType === 'ecb') { loadEcbHistorical(days); }
+      else { loadHistorical(currentModalCur, days); }
     });
     container.appendChild(btn);
   });
@@ -361,6 +368,88 @@ function openPolicyRateChart() {
   ], 7300);
   openModal();
   loadPolicyRateHistorical(7300);
+}
+
+var RATE_RANGES = [{label:'1Y',days:365},{label:'2Y',days:730},{label:'5Y',days:1825},{label:'10Y',days:3650},{label:'20Y',days:7300}];
+
+function openFedChart() {
+  currentModalType = 'fed';
+  document.getElementById('modalTitle').textContent = '🇺🇸 Fed Funds Rate';
+  setRangeButtons(RATE_RANGES, 7300);
+  openModal();
+  loadFedHistorical(7300);
+}
+
+function openEcbChart() {
+  currentModalType = 'ecb';
+  document.getElementById('modalTitle').textContent = '🇪🇺 ECB Deposit Facility Rate';
+  setRangeButtons(RATE_RANGES, 7300);
+  openModal();
+  loadEcbHistorical(7300);
+}
+
+function makeRateChart(ctx, labels, values, color, gradColor) {
+  var grad = ctx.createLinearGradient(0, 0, 0, 300);
+  grad.addColorStop(0, gradColor || 'rgba(0,0,0,0.1)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets: [{ data: values, borderColor: color, backgroundColor: grad, borderWidth: 2, pointRadius: 0, fill: true, tension: 0.1 }] },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return c.parsed.y.toFixed(2) + '%'; } } } },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 7, maxRotation: 0, font: { size: 11 } }, grid: { color: 'rgba(221,227,237,0.9)' } },
+        y: { suggestedMin: 0, ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(1) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } }
+      }
+    }
+  });
+}
+
+function makeRateStats(stats, values) {
+  var max = Math.max.apply(null, values), min = Math.min.apply(null, values), latest = values[values.length-1];
+  stats.innerHTML =
+    '<div class="stat-box"><div class="label">Current</div><div class="value">' + latest.toFixed(2) + '%</div></div>' +
+    '<div class="stat-box"><div class="label">High</div><div class="value">' + max.toFixed(2) + '%</div></div>' +
+    '<div class="stat-box"><div class="label">Low</div><div class="value">' + min.toFixed(2) + '%</div></div>';
+}
+
+async function loadFedHistorical(days) {
+  var canvas = document.getElementById('histChart');
+  var stats = document.getElementById('chartStats');
+  if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
+  stats.innerHTML = '';
+  var start = new Date(); start.setDate(start.getDate() - days);
+  var sp = start.toISOString().slice(0, 10);
+  try {
+    var res = await fetch('https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=178b6a436dc612d9cf52e4fbc2b402ff&file_type=json&sort_order=asc&observation_start=' + sp);
+    var json = await res.json();
+    var obs = json.observations.filter(function(o) { return o.value !== '.'; });
+    var labels = obs.map(function(o) { return o.date; });
+    var values = obs.map(function(o) { return parseFloat(o.value); });
+    histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#dc2626', 'rgba(220,38,38,0.18)');
+    makeRateStats(stats, values);
+  } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load Fed data</div>'; }
+}
+
+async function loadEcbHistorical(days) {
+  var canvas = document.getElementById('histChart');
+  var stats = document.getElementById('chartStats');
+  if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
+  stats.innerHTML = '';
+  var start = new Date(); start.setDate(start.getDate() - days);
+  var sp = start.toISOString().slice(0, 10);
+  try {
+    var res = await fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp);
+    var json = await res.json();
+    var ds = json.dataSets[0]; var sk = Object.keys(ds.series)[0];
+    var objs = ds.series[sk].observations;
+    var timeVals = json.structure.dimensions.observation[0].values;
+    var keys = Object.keys(objs).sort(function(a,b){return parseInt(a)-parseInt(b);});
+    var labels = keys.map(function(k) { return timeVals[parseInt(k)].id; });
+    var values = keys.map(function(k) { return objs[k][0]; });
+    histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#1d4ed8', 'rgba(29,78,216,0.18)');
+    makeRateStats(stats, values);
+  } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load ECB data</div>'; }
 }
 
 async function loadHistorical(cur, days) {
@@ -482,8 +571,28 @@ async function loadInterest() {
   var container = document.getElementById('interestContent');
   container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching interest rates\u2026</span></div>';
   try {
-    var prRes = await fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no');
+    var fedCurrentUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=178b6a436dc612d9cf52e4fbc2b402ff&file_type=json&sort_order=desc&limit=5';
+    var ecbCurrentUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&lastNObservations=1';
+    var [prRes, fedRes, ecbRes] = await Promise.all([
+      fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no'),
+      fetch(fedCurrentUrl).catch(function(){return null;}),
+      fetch(ecbCurrentUrl).catch(function(){return null;})
+    ]);
     var prJson = await prRes.json();
+    var fedRate = null, fedDate = '';
+    try {
+      var fedJson = await fedRes.json();
+      var fedObs = fedJson.observations.filter(function(o){return o.value !== '.';});
+      if (fedObs.length) { fedRate = parseFloat(fedObs[0].value); fedDate = fedObs[0].date; }
+    } catch(e) {}
+    var ecbRate = null, ecbDate = '';
+    try {
+      var ecbJson = await ecbRes.json();
+      var ecbDs = ecbJson.dataSets[0]; var ecbSk = Object.keys(ecbDs.series)[0];
+      var ecbObs = ecbDs.series[ecbSk].observations; var ecbOk = Object.keys(ecbObs)[0];
+      ecbRate = ecbObs[ecbOk][0];
+      ecbDate = ecbJson.structure.dimensions.observation[0].values[parseInt(ecbOk)].id;
+    } catch(e) {}
     var prDs = prJson.data.dataSets[0]; var prSeriesKey = Object.keys(prDs.series)[0];
     var prObs = prDs.series[prSeriesKey].observations; var prObsKey = Object.keys(prObs)[0];
     var policyRate = parseFloat(prObs[prObsKey][0]);
@@ -506,7 +615,13 @@ async function loadInterest() {
       var t = tenorLabels[i]; var v = rateMap[t];
       html += '<div class="rt-row"><span class="rt-tenor">' + t + '</span><span class="rt-rate">' + (v !== null ? v.toFixed(3) + '%' : '\u2014') + '</span></div>';
     }
-    html += '</div>'; container.innerHTML = html;
+    html += '</div>';
+    html += '<div class="section-title" style="margin-top:20px">\uD83C\uDF0D Global Central Banks</div>';
+    html += '<div class="cb-rate-grid">';
+    html += '<div class="cb-rate-card fed" onclick="openFedChart()"><div class="cr-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="cr-label">Fed Funds Rate</div><div class="cr-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (fedDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
+    html += '<div class="cb-rate-card ecb" onclick="openEcbChart()"><div class="cr-flag">\uD83C\uDDEA\uD83C\uDDFA</div><div class="cr-label">ECB Deposit Rate</div><div class="cr-value">' + (ecbRate !== null ? ecbRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (ecbDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
+    html += '</div>';
+    container.innerHTML = html;
     var yieldValues = tenorLabels.map(function(t) { return rateMap[t]; });
     var ctx = document.getElementById('yieldChart').getContext('2d');
     var grad = ctx.createLinearGradient(0, 0, 0, 260);
