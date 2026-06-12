@@ -431,12 +431,12 @@ async function loadFedHistorical(days) {
   var start = new Date(); start.setDate(start.getDate() - days);
   var sp = start.toISOString().slice(0, 10);
   try {
-    var _fedHistUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=178b6a436dc612d9cf52e4fbc2b402ff&file_type=json&sort_order=asc&observation_start=' + sp);
+    var _fedHistUrl = 'https://markets.newyorkfed.org/api/rates/effr/search.json?startDate=' + sp + '&type=rate';
     var res = await fetch(_fedHistUrl);
     var json = await res.json();
-    var obs = json.observations.filter(function(o) { return o.value !== '.'; });
-    var labels = obs.map(function(o) { return o.date; });
-    var values = obs.map(function(o) { return parseFloat(o.value); });
+    var obs = (json.refRates || []).slice().reverse();
+    var labels = obs.map(function(o) { return o.effectiveDate; });
+    var values = obs.map(function(o) { return o.percentRate; });
     histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#dc2626', 'rgba(220,38,38,0.18)');
     makeRateStats(stats, values);
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load Fed data</div>'; }
@@ -582,7 +582,7 @@ async function loadInterest() {
   var container = document.getElementById('interestContent');
   container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching interest rates\u2026</span></div>';
   try {
-    var _fredCurUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=DFF&api_key=178b6a436dc612d9cf52e4fbc2b402ff&file_type=json&sort_order=desc&limit=5');
+    var _fredCurUrl = 'https://markets.newyorkfed.org/api/rates/effr/last/1.json';
     var _sixMoAgo = new Date(); _sixMoAgo.setMonth(_sixMoAgo.getMonth()-6);
     var _ecbCurUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + _sixMoAgo.toISOString().slice(0,10);
     var [prRes, fedRes, ecbRes] = await Promise.all([
@@ -594,8 +594,8 @@ async function loadInterest() {
     var fedRate = null, fedDate = '';
     try {
       var fedJson = await fedRes.json();
-      var fedObs = fedJson.observations.filter(function(o){return o.value !== '.';});
-      if (fedObs.length) { fedRate = parseFloat(fedObs[0].value); fedDate = fedObs[0].date; }
+      var fedObs = fedJson.refRates;
+      if (fedObs && fedObs.length) { fedRate = fedObs[0].percentRate; fedDate = fedObs[0].effectiveDate; }
     } catch(e) {}
     var ecbRate = null, ecbDate = '';
     try {
