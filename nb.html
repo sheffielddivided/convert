@@ -87,6 +87,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .error-msg{color:var(--red);text-align:center;padding:20px;font-size:14px}
 .refresh-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);color:var(--text2);padding:7px 14px;border-radius:20px;font-size:12px;font-family:inherit;cursor:pointer;margin-left:auto;transition:all .18s;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .refresh-btn:active{background:var(--card-hover);transform:scale(0.95)}
+.reload-btn{position:absolute;top:calc(env(safe-area-inset-top,16px) + 10px);right:16px;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:all .18s;-webkit-user-select:none;user-select:none}
+.reload-btn:active{transform:scale(0.9);background:var(--card-hover)}
+.reload-btn.spinning{animation:spin .6s linear}
 .press-release-link{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .18s;-webkit-user-select:none;user-select:none;text-decoration:none;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .press-release-link:active{background:var(--card-hover);transform:scale(0.98)}
 .press-release-link .prl-icon{font-size:24px;flex-shrink:0}
@@ -99,9 +102,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 <body>
 
 
-<div class="header">
+<div class="header" style="position:relative">
   <h1>&#x1F1F3;&#x1F1F4; Norges Bank</h1>
   <div class="subtitle">Exchange Rates, Interest Rates &amp; Inflation</div>
+  <button class="reload-btn" id="reloadBtn" onclick="reloadPage()" title="Reload">&#x21BB;</button>
   <div class="tab-bar">
     <button class="active" onclick="switchTab('currency')"><span class="icon">&#x1F4B1;</span>Currency</button>
     <button onclick="switchTab('interest')"><span class="icon">&#x1F4C8;</span>Interest</button>
@@ -145,6 +149,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 </div>
 
 <script>
+
+function reloadPage() {
+  var btn = document.getElementById('reloadBtn');
+  btn.classList.add('spinning');
+  setTimeout(function() { location.reload(); }, 300);
+}
 
 var currentTab = 'currency';
 var interestLoaded = false;
