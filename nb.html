@@ -23,15 +23,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .tab-bar button.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 3px 10px rgba(0,85,179,0.3)}
 .tab-bar button:not(.active):hover{background:#e4ecf7;color:var(--accent);border-color:#c8d9f0}
 .tab-bar button .icon{font-size:17px;line-height:1}
-.cb-rate-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-.cb-rate-card{border-radius:18px;padding:20px 14px;text-align:center;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s;position:relative;overflow:hidden}
-.cb-rate-card:active{transform:scale(0.97)}
-.cb-rate-card .cr-flag{font-size:24px;margin-bottom:4px}
-.cb-rate-card .cr-label{font-size:10px;opacity:0.85;letter-spacing:0.5px;text-transform:uppercase;color:#fff}
-.cb-rate-card .cr-value{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;margin:6px 0 2px}
-.cb-rate-card .cr-sub{font-size:11px;opacity:0.7;color:#fff}
-.cb-rate-card.fed{background:linear-gradient(135deg,#7f1d1d,#dc2626);box-shadow:0 4px 16px rgba(220,38,38,0.28)}
-.cb-rate-card.ecb{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);box-shadow:0 4px 16px rgba(29,78,216,0.28)}
+.rc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.rc-card{border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s;position:relative;overflow:hidden}
+.rc-card:active{transform:scale(0.97)}
+.rc-card .rc-flag{font-size:20px;margin-bottom:3px}
+.rc-card .rc-label{font-size:9px;opacity:0.85;letter-spacing:0.5px;text-transform:uppercase;color:#fff;line-height:1.3}
+.rc-card .rc-value{font-size:clamp(18px,4.8vw,26px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;margin:5px 0 3px;line-height:1.1}
+.rc-card .rc-sub{font-size:9px;opacity:0.7;color:#fff;line-height:1.3}
+.rc-card.nb{background:linear-gradient(135deg,#003d99,#0066cc);box-shadow:0 4px 16px rgba(0,85,179,0.28)}
+.rc-card.fed{background:linear-gradient(135deg,#7f1d1d,#dc2626);box-shadow:0 4px 16px rgba(220,38,38,0.28)}
+.rc-card.ecb{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);box-shadow:0 4px 16px rgba(29,78,216,0.28)}
 .view{display:none;padding:18px 16px;animation:fadeIn .25s ease}
 .view.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -70,12 +71,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .stat-box{flex:1;min-width:80px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
 .stat-box .label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500}
 .stat-box .value{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
-.policy-rate-card{background:linear-gradient(135deg,#003d99,#0066cc);border-radius:20px;padding:28px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none;transition:transform .2s;box-shadow:0 4px 20px rgba(0,85,179,0.3)}
-.policy-rate-card:active{transform:scale(0.97)}
-.policy-rate-card::after{content:'';position:absolute;top:-30%;right:-15%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.07)}
-.policy-rate-card .pr-label{font-size:13px;opacity:0.85;letter-spacing:0.6px;text-transform:uppercase;color:#fff}
-.policy-rate-card .pr-value{font-size:52px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums;color:#fff}
-.policy-rate-card .pr-sub{font-size:13px;opacity:0.75;color:#fff}
 .section-title{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--text);text-transform:uppercase;letter-spacing:0.4px}
 .yield-chart-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
 .yield-chart-inner{height:260px;position:relative}
@@ -716,17 +711,17 @@ async function loadInterest() {
     var tenorResults = await Promise.all(tenorPromises);
     var rateMap = {}; tenorResults.forEach(function(r) { rateMap[r.tenor] = r.rate; });
     var cbCompRangeBtns = CB_COMP_RANGES.map(function(r){ return '<button class="cb-comp-range-btn range-btn' + (r.days===1825?' active':'') + '" data-days="'+r.days+'" onclick="renderCbComparison('+r.days+')">'+r.label+'</button>'; }).join('');
-    var html = '<div class="policy-rate-card" onclick="openPolicyRateChart()"><div class="pr-label">Policy Rate (Styringsrenten)</div><div class="pr-value">' + policyRate.toFixed(2) + '%</div><div class="pr-sub">As of ' + prDate + ' \u00B7 Tap for history \u203A</div></div><div id="policyPressRelease"></div>'
+    var html = '<div class="rc-grid">'
+      + '<div class="rc-card nb" onclick="openPolicyRateChart()"><div class="rc-flag">\uD83C\uDDF3\uD83C\uDDF4</div><div class="rc-label">Styringsrente</div><div class="rc-value">' + policyRate.toFixed(2) + '%</div><div class="rc-sub">' + prDate + ' \u00B7 Tap \u203A</div></div>'
+      + '<div class="rc-card fed" onclick="openFedChart()"><div class="rc-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="rc-label">Fed Funds Rate</div><div class="rc-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (fedDate || '') + ' \u00B7 Tap \u203A</div></div>'
+      + '<div class="rc-card ecb" onclick="openEcbChart()"><div class="rc-flag">\uD83C\uDDEA\uD83C\uDDFA</div><div class="rc-label">ECB Deposit Rate</div><div class="rc-value">' + (ecbRate !== null ? ecbRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (ecbDate || '') + ' \u00B7 Tap \u203A</div></div>'
+      + '</div>'
+      + '<div id="policyPressRelease"></div>'
       + '<div class="section-title">\uD83C\uDF0D Central Bank Policy Rates</div>'
       + '<div class="range-row">' + cbCompRangeBtns + '</div>'
       + '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cbCompCanvas"></canvas></div></div>'
       + '<div id="cbCompStats"></div>'
       + '<div class="section-title" style="margin-top:16px">&#x1F1F3;&#x1F1F4; Norwegian Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div>';
-    html += '<div class="section-title" style="margin-top:20px">\uD83C\uDF0D Global Central Banks</div>';
-    html += '<div class="cb-rate-grid">';
-    html += '<div class="cb-rate-card fed" onclick="openFedChart()"><div class="cr-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="cr-label">Fed Funds Rate</div><div class="cr-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (fedDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
-    html += '<div class="cb-rate-card ecb" onclick="openEcbChart()"><div class="cr-flag">\uD83C\uDDEA\uD83C\uDDFA</div><div class="cr-label">ECB Deposit Rate</div><div class="cr-value">' + (ecbRate !== null ? ecbRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (ecbDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
-    html += '</div>';
     container.innerHTML = html;
     var yieldValues = tenorLabels.map(function(t) { return rateMap[t]; });
     var ctx = document.getElementById('yieldChart').getContext('2d');
