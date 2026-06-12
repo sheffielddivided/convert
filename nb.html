@@ -433,7 +433,9 @@ async function loadFedHistorical(days) {
   try {
     var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
     var _fedHistUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
-    var res = await fetch(_fedHistUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl)); });
+    var res = await fetch('https://corsproxy.io/?' + _fedHistUrl)
+      .catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl)); })
+      .catch(function(){ return fetch(_fedHistUrl); });
     var json = await res.json();
     var obs = (json.observations || []).filter(function(o){ return o.value !== '.'; });
     var labels = obs.map(function(o) { return o.date; });
