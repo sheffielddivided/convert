@@ -624,12 +624,7 @@ async function loadInterest() {
     });
     var tenorResults = await Promise.all(tenorPromises);
     var rateMap = {}; tenorResults.forEach(function(r) { rateMap[r.tenor] = r.rate; });
-    var html = '<div class="policy-rate-card" onclick="openPolicyRateChart()"><div class="pr-label">Policy Rate (Styringsrenten)</div><div class="pr-value">' + policyRate.toFixed(2) + '%</div><div class="pr-sub">As of ' + prDate + ' \u00B7 Tap for history \u203A</div></div><div id="policyPressRelease"></div><div class="section-title">&#x1F3DB;&#xFE0F; Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div><div class="section-title">&#x1F4CA; Generic Rates</div><div class="rates-table">';
-    for (var i = 0; i < tenorLabels.length; i++) {
-      var t = tenorLabels[i]; var v = rateMap[t];
-      html += '<div class="rt-row"><span class="rt-tenor">' + t + '</span><span class="rt-rate">' + (v !== null ? v.toFixed(3) + '%' : '\u2014') + '</span></div>';
-    }
-    html += '</div>';
+    var html = '<div class="policy-rate-card" onclick="openPolicyRateChart()"><div class="pr-label">Policy Rate (Styringsrenten)</div><div class="pr-value">' + policyRate.toFixed(2) + '%</div><div class="pr-sub">As of ' + prDate + ' \u00B7 Tap for history \u203A</div></div><div id="policyPressRelease"></div><div class="section-title">&#x1F1F3;&#x1F1F4; Norwegian Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div>';
     html += '<div class="section-title" style="margin-top:20px">\uD83C\uDF0D Global Central Banks</div>';
     html += '<div class="cb-rate-grid">';
     html += '<div class="cb-rate-card fed" onclick="openFedChart()"><div class="cr-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="cr-label">Fed Funds Rate</div><div class="cr-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (fedDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
