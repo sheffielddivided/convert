@@ -739,8 +739,9 @@ async function loadInterest() {
   } catch(e) { container.innerHTML = '<div class="error-msg">Failed to load interest rate data. Please try again.</div>'; }
 }
 
-var cpiChartInstance = null, ppiChartInstance = null;
+var cpiChartInstance = null, ppiChartInstance = null, infCompChartInstance = null;
 var infCpi = null, infPpi = null, infN = 60;
+var infUsCpi = null, infEuHicp = null;
 var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240}];
 
 function parseStat2(data, dim1Key, dim2Key) {
@@ -792,32 +793,92 @@ function renderInflation(N) {
   var ppi12m = infPpi.series['Tolvmanedersendring'].slice(-N);
   var latestCpi = cpi12m[cpi12m.length-1];
   var latestPpi = ppi12m[ppi12m.length-1];
-  function colVal(v) { return (v >= 0) ? 'var(--accent2)' : 'var(--red)'; }
+  var latestUsCpi = (infUsCpi && infUsCpi.length) ? infUsCpi[infUsCpi.length-1].value : null;
+  var latestUsCpiDate = (infUsCpi && infUsCpi.length) ? infUsCpi[infUsCpi.length-1].date.slice(0,7) : '';
+  var latestEuHicp = (infEuHicp && infEuHicp.length) ? infEuHicp[infEuHicp.length-1].value : null;
+  var latestEuDate = (infEuHicp && infEuHicp.length) ? infEuHicp[infEuHicp.length-1].date.slice(0,7) : '';
+  var latestNbDate = infCpi.labels[infCpi.labels.length-1].slice(0,4) + '-' + infCpi.labels[infCpi.labels.length-1].slice(5,7);
+  function colVal(v) { return (v != null && v < 0) ? 'var(--red)' : 'var(--accent)'; }
 
-  var rangeBtns = '<div class="range-btns" id="infRangeBtns">' +
+  var rangeBtns = '<div class="range-row">' +
     INF_RANGES.map(function(r) {
-      return '<button onclick="renderInflation(' + r.n + ')"' + (r.n === N ? ' class="active"' : '') + '>' + r.label + '</button>';
+      return '<button class="range-btn' + (r.n === N ? ' active' : '') + '" onclick="renderInflation(' + r.n + ')">' + r.label + '</button>';
     }).join('') + '</div>';
 
   el.innerHTML =
+    '<div class="rc-grid">' +
+      '<div class="rc-card nb"><div class="rc-flag">\ud83c\uddf3\ud83c\uddf4</div><div class="rc-label">Norway CPI</div><div class="rc-value">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + latestNbDate + ' \u00b7 12m change</div></div>' +
+      '<div class="rc-card fed"><div class="rc-flag">\ud83c\uddfa\ud83c\uddf8</div><div class="rc-label">US CPI</div><div class="rc-value">' + (latestUsCpi != null ? latestUsCpi.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (latestUsCpiDate || '') + ' \u00b7 12m change</div></div>' +
+      '<div class="rc-card ecb"><div class="rc-flag">\ud83c\uddea\ud83c\uddfa</div><div class="rc-label">EU HICP</div><div class="rc-value">' + (latestEuHicp != null ? latestEuHicp.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (latestEuDate || '') + ' \u00b7 12m change</div></div>' +
+    '</div>' +
     rangeBtns +
-    '<div class="section-title">\ud83d\udcc8 Consumer Price Index (CPI)</div>' +
+    '<div class="section-title">\ud83c\udf0d CPI Comparison</div>' +
+    '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="infCompCanvas"></canvas></div></div>' +
+    '<div class="section-title" style="margin-top:16px">\ud83d\udcc8 Norway CPI</div>' +
     '<div class="inf-stat-row">' +
       '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestCpi) + '">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
       '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + cpiLabels[cpiLabels.length-1] + '</div></div>' +
     '</div>' +
     '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cpiChart"></canvas></div></div>' +
-    '<div class="section-title" style="margin-top:4px">\ud83c\udfed Producer Price Index (PPI)</div>' +
+    '<div class="section-title" style="margin-top:16px">\ud83c\udfed Norway PPI</div>' +
     '<div class="inf-stat-row">' +
       '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestPpi) + '">' + (latestPpi != null ? latestPpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
       '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + ppiLabels[ppiLabels.length-1] + '</div></div>' +
     '</div>' +
     '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="ppiChart"></canvas></div></div>';
 
-  if (cpiChartInstance) cpiChartInstance.destroy();
-  if (ppiChartInstance) ppiChartInstance.destroy();
+  if (cpiChartInstance) { cpiChartInstance.destroy(); cpiChartInstance = null; }
+  if (ppiChartInstance) { ppiChartInstance.destroy(); ppiChartInstance = null; }
+  if (infCompChartInstance) { infCompChartInstance.destroy(); infCompChartInstance = null; }
+
   cpiChartInstance = makeInflationChart('cpiChart', cpiLabels, cpi12m, '#0055b3', 'rgba(0,85,179,0.15)');
   ppiChartInstance = makeInflationChart('ppiChart', ppiLabels, ppi12m, '#16a34a', 'rgba(22,163,74,0.15)');
+
+  // Build comparison chart with monthly labels
+  var startDate = new Date(); startDate.setMonth(startDate.getMonth() - N);
+  var sp = startDate.toISOString().slice(0, 10);
+  var compLabels = [], d = new Date(startDate); d.setDate(1);
+  var now = new Date();
+  while (d <= now) { compLabels.push(d.toISOString().slice(0,7)); d.setMonth(d.getMonth()+1); }
+
+  // Norway: convert labels 2024M01 -> 2024-01
+  var nbMonthly = infCpi.labels.map(function(l, i){
+    return {date: l.slice(0,4)+'-'+l.slice(5,7), value: infCpi.series['Tolvmanedersendring'][i]};
+  }).filter(function(o){ return o.date >= sp && o.value != null; });
+
+  function fwdFillComp(series, labels) {
+    var result = [], si = 0, last = null;
+    for (var i = 0; i < labels.length; i++) {
+      while (si < series.length && series[si].date.slice(0,7) <= labels[i]) { last = series[si].value; si++; }
+      result.push(last);
+    }
+    return result;
+  }
+
+  var nbVals = fwdFillComp(nbMonthly, compLabels);
+  var usVals = fwdFillComp((infUsCpi||[]).filter(function(o){return o.date>=sp;}), compLabels);
+  var euVals = fwdFillComp((infEuHicp||[]).filter(function(o){return o.date>=sp;}), compLabels);
+  var dispLabels = compLabels.map(function(l){ return l.slice(0,4)+'-'+l.slice(5,7); });
+
+  var compCanvas = document.getElementById('infCompCanvas');
+  infCompChartInstance = new Chart(compCanvas.getContext('2d'), {
+    type: 'line',
+    data: { labels: dispLabels, datasets: [
+      {label:'\ud83c\uddf3\ud83c\uddf4 Norway', data:nbVals, borderColor:'#0055b3', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
+      {label:'\ud83c\uddfa\ud83c\uddf8 US', data:usVals, borderColor:'#dc2626', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
+      {label:'\ud83c\uddea\ud83c\uddfa EU', data:euVals, borderColor:'#1d4ed8', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true}
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11},boxWidth:16,padding:10,usePointStyle:true,pointStyle:'line'}},
+        tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(26,32,53,0.92)',titleColor:'#f0f4f8',bodyColor:'#e2e8f0',borderColor:'#3b4a6b',borderWidth:1,padding:10,callbacks:{label:function(c){return c.dataset.label+': '+(c.parsed.y!=null?c.parsed.y.toFixed(1)+'%':'\u2014');}}}
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',maxTicksLimit:8,maxRotation:0,font:{size:11}},grid:{color:'rgba(221,227,237,0.9)'}},
+        y:{suggestedMin:0,ticks:{color:'#64748b',font:{size:11},callback:function(v){return v.toFixed(1)+'%';}},grid:{color:'rgba(221,227,237,0.9)'}}
+      }
+    }
+  });
 }
 
 async function loadInflation() {
@@ -825,10 +886,29 @@ async function loadInflation() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching inflation data\u2026</span></div>';
   var CPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/14700/data?lang=en&outputFormat=json-stat2&valuecodes[Tid]=*&codelist[VareTjenesteGrp]=vs_CoiCop2018Kpi01&valuecodes[ContentsCode]=KpiIndMnd,Tolvmanedersendring&heading=ContentsCode&stub=Tid';
   var PPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/12462/data?lang=en&outputFormat=json-stat2&valuecodes[ContentsCode]=Indeksnivo,Tolvmanedersendring&valuecodes[Tid]=*&valuecodes[NaringUtenriks]=SNN0&codelist[NaringUtenriks]=vs_NaringPPI1&heading=NaringUtenriks,ContentsCode&stub=Tid';
+  var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
+  var US_CPI_URL = 'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=' + _fredKey + '&units=pc1&file_type=json';
+  var EU_HICP_URL = 'https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?format=jsondata';
   try {
-    var results = await Promise.all([fetch(CPI_URL), fetch(PPI_URL)]);
-    infCpi = parseStat2(await results[0].json(), 'Tid', 'ContentsCode');
-    infPpi = parseStat2(await results[1].json(), 'Tid', 'ContentsCode');
+    var [ssbCpiRes, ssbPpiRes, usCpiRes, euHicpRes] = await Promise.all([
+      fetch(CPI_URL),
+      fetch(PPI_URL),
+      fetch('https://corsproxy.io/?' + US_CPI_URL).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(US_CPI_URL)).catch(function(){return null;}); }),
+      fetch(EU_HICP_URL).catch(function(){return null;})
+    ]);
+    infCpi = parseStat2(await ssbCpiRes.json(), 'Tid', 'ContentsCode');
+    infPpi = parseStat2(await ssbPpiRes.json(), 'Tid', 'ContentsCode');
+    try {
+      var usCpiJson = await usCpiRes.json();
+      infUsCpi = (usCpiJson.observations||[]).filter(function(o){return o.value!=='.';}).map(function(o){return {date:o.date,value:parseFloat(o.value)};});
+    } catch(e) { infUsCpi = []; }
+    try {
+      var euJson = await euHicpRes.json();
+      var euDs = euJson.dataSets[0]; var euSk = Object.keys(euDs.series)[0];
+      var euObs = euDs.series[euSk].observations;
+      var euDates = euJson.structure.dimensions.observation[0].values;
+      infEuHicp = Object.keys(euObs).map(function(k){return {date:euDates[parseInt(k)].id,value:euObs[k][0]};}).sort(function(a,b){return a.date<b.date?-1:1;});
+    } catch(e) { infEuHicp = []; }
     renderInflation(infN);
   } catch(e) {
     el.innerHTML = '<div class="error-msg">Failed to load inflation data: ' + e.message + '</div>';
