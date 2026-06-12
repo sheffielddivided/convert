@@ -382,6 +382,93 @@ function openPolicyRateChart() {
 
 var RATE_RANGES = [{label:'1Y',days:365},{label:'2Y',days:730},{label:'5Y',days:1825},{label:'10Y',days:3650},{label:'20Y',days:7300}];
 
+var CB_COMP_RANGES = [{label:'1Y',days:365},{label:'2Y',days:730},{label:'5Y',days:1825},{label:'10Y',days:3650},{label:'20Y',days:7300}];
+var cbCompChartInstance = null;
+var cbHistDays = 1825;
+var cbHistCache = null;
+
+async function loadCbComparison(days) {
+  cbHistDays = days;
+  if (cbHistCache) { renderCbComparison(days); return; }
+  var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
+  var farStart = new Date(); farStart.setFullYear(farStart.getFullYear() - 21);
+  var sp = farStart.toISOString().slice(0, 10);
+  var fedUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
+  try {
+    var [nbRes, fedRes, ecbRes] = await Promise.all([
+      fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&startPeriod=' + sp),
+      fetch('https://corsproxy.io/?' + fedUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(fedUrl)).catch(function(){return null;}); }),
+      fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp).catch(function(){return null;})
+    ]);
+    var nbJson = await nbRes.json();
+    var nbDs = nbJson.data.dataSets[0]; var nbSk = Object.keys(nbDs.series)[0];
+    var nbObs = nbDs.series[nbSk].observations;
+    var nbDates = nbJson.data.structure.dimensions.observation[0].values;
+    var nbData = Object.keys(nbObs).map(function(k){ return {date: nbDates[parseInt(k)].id, value: parseFloat(nbObs[k][0])}; }).sort(function(a,b){return a.date<b.date?-1:1;});
+    var fedData = [];
+    try { var fedJson = await fedRes.json(); fedData = (fedJson.observations||[]).filter(function(o){return o.value!=='.';}).map(function(o){return {date:o.date,value:parseFloat(o.value)};}); } catch(e) {}
+    var ecbData = [];
+    try {
+      var ecbJson = await ecbRes.json();
+      var ecbDs = ecbJson.dataSets[0]; var ecbSk = Object.keys(ecbDs.series)[0];
+      var ecbObs = ecbDs.series[ecbSk].observations;
+      var ecbDates = ecbJson.structure.dimensions.observation[0].values;
+      ecbData = Object.keys(ecbObs).map(function(k){return {date:ecbDates[parseInt(k)].id,value:ecbObs[k][0]};}).sort(function(a,b){return a.date<b.date?-1:1;});
+    } catch(e) {}
+    cbHistCache = {nb: nbData, fed: fedData, ecb: ecbData};
+    renderCbComparison(days);
+  } catch(e) { var s = document.getElementById('cbCompStats'); if(s) s.innerHTML = '<div class="error-msg">Failed to load comparison data</div>'; }
+}
+
+function renderCbComparison(days) {
+  cbHistDays = days;
+  document.querySelectorAll('.cb-comp-range-btn').forEach(function(btn){
+    btn.classList.toggle('active', parseInt(btn.dataset.days) === days);
+  });
+  if (!cbHistCache) return;
+  if (cbCompChartInstance) { cbCompChartInstance.destroy(); cbCompChartInstance = null; }
+  var startDate = new Date(); startDate.setDate(startDate.getDate() - days);
+  var sp = startDate.toISOString().slice(0, 10);
+  var labels = [], d = new Date(startDate); d.setDate(1);
+  var now = new Date();
+  while (d <= now) { labels.push(d.toISOString().slice(0,7)); d.setMonth(d.getMonth()+1); }
+  function fwdFill(series, labels) {
+    var result = [], si = 0, last = null;
+    for (var i = 0; i < labels.length; i++) {
+      while (si < series.length && series[si].date.slice(0,7) <= labels[i]) { last = series[si].value; si++; }
+      result.push(last);
+    }
+    return result;
+  }
+  var nb = cbHistCache.nb.filter(function(o){return o.date>=sp;});
+  var fed = cbHistCache.fed.filter(function(o){return o.date>=sp;});
+  var ecb = cbHistCache.ecb.filter(function(o){return o.date>=sp;});
+  var nbVals = fwdFill(nb, labels);
+  var fedVals = fwdFill(fed, labels);
+  var ecbVals = fwdFill(ecb, labels);
+  var dispLabels = labels.map(function(l){ return l.slice(0,4)+'-'+l.slice(5,7); });
+  var canvas = document.getElementById('cbCompCanvas');
+  if (!canvas) return;
+  cbCompChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels: dispLabels, datasets: [
+      {label:'🇳🇴 NB', data:nbVals, borderColor:'#0055b3', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
+      {label:'🇺🇸 Fed', data:fedVals, borderColor:'#dc2626', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
+      {label:'🇪🇺 ECB', data:ecbVals, borderColor:'#16a34a', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true}
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11},boxWidth:16,padding:10,usePointStyle:true,pointStyle:'line'}},
+        tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(26,32,53,0.92)',titleColor:'#f0f4f8',bodyColor:'#e2e8f0',borderColor:'#3b4a6b',borderWidth:1,padding:10,callbacks:{label:function(c){return c.dataset.label+': '+(c.parsed.y!==null?c.parsed.y.toFixed(2)+'%':'—');}}}
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',maxTicksLimit:8,maxRotation:0,font:{size:11}},grid:{color:'rgba(221,227,237,0.9)'}},
+        y:{suggestedMin:0,ticks:{color:'#64748b',font:{size:11},callback:function(v){return v.toFixed(1)+'%';}},grid:{color:'rgba(221,227,237,0.9)'}}
+      }
+    }
+  });
+}
+
 function openFedChart() {
   currentModalType = 'fed';
   document.getElementById('modalTitle').textContent = '🇺🇸 Fed Funds Rate';
@@ -628,7 +715,13 @@ async function loadInterest() {
     });
     var tenorResults = await Promise.all(tenorPromises);
     var rateMap = {}; tenorResults.forEach(function(r) { rateMap[r.tenor] = r.rate; });
-    var html = '<div class="policy-rate-card" onclick="openPolicyRateChart()"><div class="pr-label">Policy Rate (Styringsrenten)</div><div class="pr-value">' + policyRate.toFixed(2) + '%</div><div class="pr-sub">As of ' + prDate + ' \u00B7 Tap for history \u203A</div></div><div id="policyPressRelease"></div><div class="section-title">&#x1F1F3;&#x1F1F4; Norwegian Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div>';
+    var cbCompRangeBtns = CB_COMP_RANGES.map(function(r){ return '<button class="cb-comp-range-btn range-btn' + (r.days===1825?' active':'') + '" data-days="'+r.days+'" onclick="renderCbComparison('+r.days+')">'+r.label+'</button>'; }).join('');
+    var html = '<div class="policy-rate-card" onclick="openPolicyRateChart()"><div class="pr-label">Policy Rate (Styringsrenten)</div><div class="pr-value">' + policyRate.toFixed(2) + '%</div><div class="pr-sub">As of ' + prDate + ' \u00B7 Tap for history \u203A</div></div><div id="policyPressRelease"></div>'
+      + '<div class="section-title">\uD83C\uDF0D Central Bank Policy Rates</div>'
+      + '<div class="range-row">' + cbCompRangeBtns + '</div>'
+      + '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cbCompCanvas"></canvas></div></div>'
+      + '<div id="cbCompStats"></div>'
+      + '<div class="section-title" style="margin-top:16px">&#x1F1F3;&#x1F1F4; Norwegian Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div>';
     html += '<div class="section-title" style="margin-top:20px">\uD83C\uDF0D Global Central Banks</div>';
     html += '<div class="cb-rate-grid">';
     html += '<div class="cb-rate-card fed" onclick="openFedChart()"><div class="cr-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="cr-label">Fed Funds Rate</div><div class="cr-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="cr-sub">' + (fedDate || '') + ' \u00B7 Tap for history \u203A</div></div>';
@@ -646,6 +739,8 @@ async function loadInterest() {
         scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
     });
     loadPolicyPressRelease();
+    cbHistCache = null;
+    loadCbComparison(1825);
   } catch(e) { container.innerHTML = '<div class="error-msg">Failed to load interest rate data. Please try again.</div>'; }
 }
 
