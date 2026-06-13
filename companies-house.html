@@ -238,10 +238,12 @@
 </div>
 
 <script>
-  // NOTE: API key is embedded here — avoid sharing this file publicly.
-  const API_KEY = "adb28fbf-d4ef-4a13-8202-48a8bd141a33";
-  const BASE    = "https://api.company-information.service.gov.uk";
-  const AUTH    = "Basic " + btoa(API_KEY + ":");
+  // API key lives in the Cloudflare Worker — not needed here.
+  // Set CH_PROXY to your deployed worker URL after running:
+  //   cd companies-house-proxy && npx wrangler deploy
+  //   npx wrangler secret put CH_API_KEY
+  const CH_PROXY = "";   // e.g. "https://companies-house-proxy.ditt-navn.workers.dev"
+  const BASE     = CH_PROXY;
 
   document.getElementById("searchInput").addEventListener("keydown", e => {
     if (e.key === "Enter") doSearch();
@@ -271,7 +273,8 @@
   }
 
   async function apiFetch(path) {
-    const res = await fetch(BASE + path, { headers: { Authorization: AUTH } });
+    if (!CH_PROXY) throw new Error("CH_PROXY ikke konfigurert — se kommentar i HTML-kilden.");
+    const res = await fetch(BASE + path, { headers: { Accept: "application/json" } });
     if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
     return res.json();
   }
