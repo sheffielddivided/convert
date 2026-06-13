@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Companies House lookup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #eef1f6;
+      color: #1a1a2e;
+      margin: 0;
+      padding: 2rem 1rem 4rem;
+      min-height: 100vh;
+    }
+
+    .container { max-width: 780px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .page-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.3rem; }
+    .page-header .logo {
+      width: 36px; height: 36px; background: #1d4ed8;
+      border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .page-header .logo svg { width: 20px; height: 20px; fill: #fff; }
+    h1 { font-size: 1.55rem; font-weight: 800; margin: 0; color: #1e293b; }
+    .subtitle { color: #64748b; font-size: 0.88rem; margin: 0 0 1.5rem 52px; }
+
+    /* ── Search ── */
+    .search-row { display: flex; gap: 0.5rem; margin-bottom: 1.75rem; }
+    #searchInput {
+      flex: 1; padding: 0.7rem 1rem; font-size: 1rem;
+      border: 1.5px solid #cbd5e1; border-radius: 10px;
+      outline: none; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    #searchInput:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+    button.primary {
+      padding: 0.7rem 1.4rem; background: #1d4ed8; color: #fff;
+      font-size: 1rem; font-weight: 600; border: none; border-radius: 10px;
+      cursor: pointer; transition: background 0.15s, transform 0.1s;
+      white-space: nowrap; box-shadow: 0 1px 3px rgba(29,78,216,0.3);
+    }
+    button.primary:hover { background: #1e40af; }
+    button.primary:active { transform: scale(0.97); }
+    button.primary:disabled { background: #93c5fd; box-shadow: none; cursor: default; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+      margin-bottom: 1.25rem; overflow: hidden;
+    }
+    .card-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.9rem 1.4rem; border-bottom: 1px solid #f1f5f9; background: #f8fafc;
+    }
+    .card-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .card-icon svg { width: 15px; height: 15px; }
+    .card-icon.blue   { background: #dbeafe; } .card-icon.blue svg   { fill: #2563eb; }
+    .card-icon.violet { background: #ede9fe; } .card-icon.violet svg { fill: #7c3aed; }
+    .card-icon.green  { background: #dcfce7; } .card-icon.green svg  { fill: #15803d; }
+    .card-icon.amber  { background: #fef3c7; } .card-icon.amber svg  { fill: #b45309; }
+    .card h2 {
+      font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #475569; margin: 0;
+    }
+    .card-body { padding: 1.1rem 1.4rem; }
+
+    /* ── Field rows ── */
+    .field-row {
+      display: flex; align-items: baseline; gap: 0.5rem;
+      padding: 0.45rem 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .field-row:last-child { border-bottom: none; }
+    .field-label {
+      font-size: 0.75rem; font-weight: 600; color: #94a3b8;
+      width: 175px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: 0.04em; padding-top: 0.1rem;
+    }
+    .field-value { font-size: 0.95rem; flex: 1; word-break: break-word; line-height: 1.5; }
+
+    .copy-btn {
+      padding: 0.18rem 0.5rem; font-size: 0.72rem;
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 5px; cursor: pointer; color: #64748b;
+      transition: background 0.1s, color 0.1s; flex-shrink: 0;
+    }
+    .copy-btn:hover { background: #e2e8f0; color: #1e293b; }
+    .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
+
+    /* ── Status badge ── */
+    .badge {
+      display: inline-block; font-size: 0.72rem; font-weight: 600;
+      padding: 0.1rem 0.45rem; border-radius: 4px; vertical-align: middle;
+    }
+    .badge-green  { background: #dcfce7; color: #15803d; }
+    .badge-red    { background: #fee2e2; color: #991b1b; }
+    .badge-yellow { background: #fef9c3; color: #854d0e; }
+    .badge-grey   { background: #f1f5f9; color: #475569; }
+
+    /* ── Results list ── */
+    .results-list { list-style: none; margin: 0; padding: 0; }
+    .results-list li {
+      padding: 0.8rem 1rem; cursor: pointer;
+      transition: background 0.1s; display: flex; flex-direction: column; gap: 0.15rem;
+    }
+    .results-list li:hover { background: #f0f7ff; }
+    .results-list li + li { border-top: 1px solid #f1f5f9; }
+    .result-name { font-weight: 600; font-size: 0.96rem; }
+    .result-sub  { font-size: 0.82rem; color: #64748b; }
+
+    /* ── Messages ── */
+    .msg {
+      padding: 0.75rem 1rem; border-radius: 9px;
+      font-size: 0.9rem; margin-bottom: 1.25rem;
+    }
+    .msg.info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .msg.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .msg.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* ── Officers ── */
+    .officers-group { margin-bottom: 1rem; }
+    .officers-group:last-child { margin-bottom: 0; }
+    .officers-group-title {
+      font-size: 0.75rem; font-weight: 700; color: #2563eb;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 0.35rem; padding-bottom: 0.25rem;
+      border-bottom: 2px solid #dbeafe;
+    }
+    .officer-item {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+      padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .officer-item:last-child { border-bottom: none; }
+    .officer-role { width: 175px; flex-shrink: 0; color: #64748b; font-size: 0.83rem; padding-top: 0.1rem; }
+    .officer-info { flex: 1; }
+    .officer-name { font-weight: 500; font-size: 0.92rem; }
+    .officer-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 0.1rem; }
+    .officer-actions { display: flex; gap: 0.3rem; flex-shrink: 0; padding-top: 0.05rem; }
+    .search-link {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      padding: 0.18rem 0.5rem; font-size: 0.71rem; font-weight: 600;
+      border-radius: 5px; text-decoration: none; border: 1px solid;
+      transition: background 0.1s; white-space: nowrap; line-height: 1.4;
+    }
+    .link-li    { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .link-li:hover    { background: #bfdbfe; }
+    .link-ch    { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .link-ch:hover    { background: #bbf7d0; }
+
+    /* ── PSC table ── */
+    .psc-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .psc-table th {
+      text-align: left; font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: #94a3b8; padding: 0 0 0.5rem; border-bottom: 2px solid #f1f5f9;
+    }
+    .psc-table td { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .psc-table tr:last-child td { border-bottom: none; }
+    .psc-name { font-weight: 500; }
+    .psc-control {
+      font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.5;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block; width: 17px; height: 17px;
+      border: 2px solid #bfdbfe; border-top-color: #2563eb;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 0.4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status { margin-bottom: 0.75rem; }
+    .hidden { display: none !important; }
+    .birth-year { font-weight: 400; color: #94a3b8; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+    </div>
+    <h1>Companies House lookup</h1>
+  </div>
+  <p class="subtitle">Search by company number or company name</p>
+
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="Company number or name…" autocomplete="off">
+    <button class="primary" id="searchBtn" onclick="doSearch()">Search</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="resultsArea"></div>
+
+  <!-- Company card -->
+  <div id="companyCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon blue">
+        <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+      </div>
+      <h2>Company details</h2>
+    </div>
+    <div class="card-body" id="companyCardBody"></div>
+  </div>
+
+  <!-- Officers card -->
+  <div id="officersCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon violet">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </div>
+      <h2>Officers</h2>
+    </div>
+    <div class="card-body" id="officersCardBody"></div>
+  </div>
+
+  <!-- PSC card -->
+  <div id="pscCard" class="card hidden">
+    <div class="card-header">
+      <div class="card-icon amber">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4c1.86 0 3.41 1.28 3.86 3H8.14C8.59 6.28 10.14 5 12 5zm0 5c.83 0 1.5.67 1.5 1.5S12.83 13 12 13s-1.5-.67-1.5-1.5S11.17 10 12 10zm3 7H9v-.5c0-1.5 3-2.5 3-2.5s3 1 3 2.5V17z"/></svg>
+      </div>
+      <h2>Persons with significant control</h2>
+    </div>
+    <div class="card-body" id="pscCardBody"></div>
+  </div>
+
+</div>
+
+<script>
+  // NOTE: API key is embedded here — avoid sharing this file publicly.
+  const API_KEY = "adb28fbf-d4ef-4a13-8202-48a8bd141a33";
+  const BASE    = "https://api.company-information.service.gov.uk";
+  const AUTH    = "Basic " + btoa(API_KEY + ":");
+
+  document.getElementById("searchInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") doSearch();
+  });
+
+  function isCompanyNumber(q) {
+    return /^[A-Za-z]{0,2}\d{5,8}$/.test(q.trim());
+  }
+
+  function padCompanyNumber(q) {
+    // England/Wales numbers are zero-padded to 8 chars if all digits
+    q = q.trim().toUpperCase();
+    if (/^\d+$/.test(q)) return q.padStart(8, "0");
+    return q;
+  }
+
+  function setStatus(html) { document.getElementById("status").innerHTML = html || ""; }
+
+  function clearResults() {
+    document.getElementById("resultsArea").innerHTML = "";
+    ["companyCard","officersCard","pscCard"].forEach(id =>
+      document.getElementById(id).classList.add("hidden")
+    );
+    ["companyCardBody","officersCardBody","pscCardBody"].forEach(id =>
+      document.getElementById(id).innerHTML = ""
+    );
+  }
+
+  async function apiFetch(path) {
+    const res = await fetch(BASE + path, { headers: { Authorization: AUTH } });
+    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+    return res.json();
+  }
+
+  async function doSearch() {
+    const raw = document.getElementById("searchInput").value.trim();
+    if (!raw) return;
+    clearResults();
+    setStatus('<span class="spinner"></span> Searching…');
+    document.getElementById("searchBtn").disabled = true;
+    try {
+      if (isCompanyNumber(raw)) {
+        await lookupByNumber(padCompanyNumber(raw));
+      } else {
+        await searchByName(raw);
+      }
+    } catch (err) {
+      setStatus(`<div class="msg error">Error: ${esc(err.message)}</div>`);
+    } finally {
+      document.getElementById("searchBtn").disabled = false;
+    }
+  }
+
+  async function lookupByNumber(number) {
+    let data;
+    try { data = await apiFetch(`/company/${number}`); }
+    catch (e) {
+      if (e.status === 404) { setStatus('<div class="msg warning">No company found with that number.</div>'); return; }
+      throw e;
+    }
+    setStatus("");
+    await showCompany(data);
+  }
+
+  async function searchByName(name) {
+    const data = await apiFetch(`/search/companies?q=${encodeURIComponent(name)}&items_per_page=6`);
+    const items = data.items ?? [];
+    const total = data.total_results ?? 0;
+    if (!items.length) { setStatus('<div class="msg warning">No results found.</div>'); return; }
+    if (items.length === 1) { setStatus(""); await lookupByNumber(items[0].company_number); return; }
+    setStatus("");
+    showResultList(items, total);
+  }
+
+  function showResultList(items, total) {
+    const area = document.getElementById("resultsArea");
+    let html = '<div class="card"><div class="card-header"><div class="card-icon blue"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div><h2>Select company</h2></div>';
+    if (total >= 6) html += '<div class="msg info" style="margin:1rem 1.4rem 0">More results exist — please refine your search.</div>';
+    html += '<ul class="results-list">';
+    items.slice(0, 5).forEach((c, i) => {
+      const addr = [c.address?.address_line_1, c.address?.locality, c.address?.postal_code].filter(Boolean).join(", ");
+      html += `<li onclick="selectCompany(${i})">
+        <span class="result-name">${esc(c.title)}</span>
+        <span class="result-sub">${esc(c.company_number)} · ${esc(formatType(c.company_type))}${addr ? " · " + esc(addr) : ""}</span>
+      </li>`;
+    });
+    html += "</ul></div>";
+    area.innerHTML = html;
+    area._items = items;
+  }
+
+  async function selectCompany(idx) {
+    const items = document.getElementById("resultsArea")._items;
+    document.getElementById("resultsArea").innerHTML = "";
+    setStatus('<span class="spinner"></span> Loading…');
+    await lookupByNumber(items[idx].company_number);
+  }
+
+  async function showCompany(c) {
+    setStatus("");
+    const number  = c.company_number ?? "–";
+    const navn    = c.company_name   ?? "–";
+    const status  = c.company_status ?? "";
+    const type    = formatType(c.company_type ?? "");
+    const created = c.date_of_creation ? formatDate(c.date_of_creation) : "–";
+    const addr    = formatAddress(c.registered_office_address);
+    const website = c.links?.self ? "" : "";   // no website field in CH API
+
+    const statusBadge = statusBadgeHtml(status);
+
+    const body = document.getElementById("companyCardBody");
+    document.getElementById("companyCard").classList.remove("hidden");
+    body.innerHTML =
+      fieldRow("Name", navn) +
+      fieldRowCompanyNumber("Company number", number) +
+      `<div class="field-row">
+        <span class="field-label">Status</span>
+        <span class="field-value">${statusBadge}</span>
+      </div>` +
+      fieldRow("Type", type) +
+      fieldRow("Incorporated", created) +
+      fieldRowMultiline("Registered address", addr.line1, addr.line2);
+
+    loadOfficers(number);
+    loadPsc(number);
+  }
+
+  /* ── Officers ── */
+  async function loadOfficers(number) {
+    const card = document.getElementById("officersCard");
+    const body = document.getElementById("officersCardBody");
+    card.classList.remove("hidden");
+    body.innerHTML = '<span class="spinner"></span> Loading officers…';
+    try {
+      const data = await apiFetch(`/company/${number}/officers?items_per_page=50`);
+      const all = (data.items ?? []).filter(o => !o.resigned_on);
+      if (!all.length) { body.innerHTML = '<div class="msg info">No active officers found.</div>'; return; }
+
+      // Group by role
+      const groups = {};
+      all.forEach(o => {
+        const role = formatRole(o.officer_role);
+        if (!groups[role]) groups[role] = [];
+        groups[role].push(o);
+      });
+
+      let html = "";
+      Object.entries(groups).forEach(([role, officers]) => {
+        html += `<div class="officers-group"><div class="officers-group-title">${esc(role)}</div>`;
+        officers.forEach(o => {
+          const name       = formatOfficerName(o.name);
+          const dob        = o.date_of_birth ? `b. ${o.date_of_birth.month}/${o.date_of_birth.year}` : null;
+          const nationality= o.nationality ?? null;
+          const appointed  = o.appointed_on ? "Appt. " + formatDate(o.appointed_on) : null;
+          const meta       = [dob, nationality, appointed].filter(Boolean).join(" · ");
+          const chUrl      = o.links?.officer?.appointments
+            ? "https://find-and-update.company-information.service.gov.uk" + o.links.officer.appointments
+            : null;
+          const btns = `<span class="officer-actions">
+            <a class="search-link link-li" href="https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}&origin=GLOBAL_SEARCH_HEADER" target="_blank" rel="noopener">LinkedIn</a>
+            ${chUrl ? `<a class="search-link link-ch" href="${esc(chUrl)}" target="_blank" rel="noopener">CH ↗</a>` : ""}
+          </span>`;
+          html += `<div class="officer-item">
+            <span class="officer-role">&nbsp;</span>
+            <span class="officer-info">
+              <div class="officer-name">${esc(name)}</div>
+              ${meta ? `<div class="officer-meta">${esc(meta)}</div>` : ""}
+            </span>
+            ${btns}
+          </div>`;
+        });
+        html += "</div>";
+      });
+      body.innerHTML = html;
+    } catch (err) {
+      body.innerHTML = `<div class="msg error">Could not load officers: ${esc(err.message)}</div>`;
+    }
+  }
+
+  /* ── PSC ── */
+  async function loadPsc(number) {
+    const card = document.getElementById("pscCard");
+    const body = document.getElementById("pscCardBody");
+    try {
+      const data = await apiFetch(`/company/${number}/persons-with-significant-control?items_per_page=25`);
+      const items = (data.items ?? []).filter(p => !p.ceased_on);
+      if (!items.length) return;
+
+      let html = `<table class="psc-table"><thead><tr>
+        <th style="width:55%">Name</th>
+        <th>Nature of control</th>
+      </tr></thead><tbody>`;
+
+      items.forEach(p => {
+        const name     = p.name ?? "–";
+        const kind     = p.kind ?? "";
+        const controls = (p.natures_of_control ?? []).map(formatControl).join("<br>");
+        const dob      = p.date_of_birth ? `b. ${p.date_of_birth.month}/${p.date_of_birth.year}` : null;
+        const country  = p.country_of_residence ?? p.nationality ?? null;
+        const meta     = [dob, country].filter(Boolean).join(" · ");
+        const kindBadge = kind.includes("corporate") || kind.includes("legal")
+          ? ` <span class="badge badge-grey" style="font-size:0.68rem">entity</span>` : "";
+        html += `<tr>
+          <td><div class="psc-name">${esc(name)}${kindBadge}</div>${meta ? `<div class="psc-control">${esc(meta)}</div>` : ""}</td>
+          <td><div class="psc-control">${controls || "–"}</div></td>
+        </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      card.classList.remove("hidden");
+      body.innerHTML = html;
+    } catch (_) { }
+  }
+
+  /* ── Helpers ── */
+  function formatAddress(a) {
+    if (!a) return { line1: "–", line2: "" };
+    const line1 = [a.address_line_1, a.address_line_2].filter(Boolean).join(", ");
+    const line2 = [a.locality, a.region, a.postal_code, a.country].filter(Boolean).join(", ");
+    return { line1: line1 || "–", line2 };
+  }
+
+  function formatDate(d) {
+    if (!d) return "–";
+    const [y, m, day] = d.split("-");
+    return `${day ?? ""}${day ? "/" : ""}${m}/${y}`;
+  }
+
+  function formatType(t) {
+    const map = {
+      "ltd": "Private limited company",
+      "plc": "Public limited company",
+      "llp": "Limited liability partnership",
+      "private-unlimited": "Private unlimited company",
+      "old-public-company": "Old public company",
+      "private-limited-guarant-nsc-limited-exemption": "Private limited by guarantee",
+      "limited-partnership": "Limited partnership",
+      "royal-charter": "Royal charter",
+      "community-interest-company": "Community interest company",
+      "uk-establishment": "UK establishment",
+      "scottish-partnership": "Scottish partnership",
+    };
+    return map[t] ?? (t ? t.replace(/-/g, " ") : "–");
+  }
+
+  function formatRole(r) {
+    const map = {
+      "director": "Director",
+      "secretary": "Secretary",
+      "llp-member": "LLP member",
+      "llp-designated-member": "LLP designated member",
+      "corporate-director": "Corporate director",
+      "corporate-secretary": "Corporate secretary",
+      "judicial-factor": "Judicial factor",
+      "receiver-and-manager": "Receiver and manager",
+      "nominee-director": "Nominee director",
+      "nominee-secretary": "Nominee secretary",
+    };
+    return map[r] ?? (r ? r.replace(/-/g, " ") : r);
+  }
+
+  function formatOfficerName(raw) {
+    // CH returns "SURNAME, Firstname" — convert to "Firstname Surname"
+    if (!raw) return "–";
+    const comma = raw.indexOf(",");
+    if (comma === -1) return raw;
+    const surname   = raw.slice(0, comma).trim();
+    const firstname = raw.slice(comma + 1).trim();
+    return firstname ? firstname + " " + surname : surname;
+  }
+
+  function formatControl(c) {
+    return c
+      .replace(/-/g, " ")
+      .replace(/\b(\w)/g, l => l.toUpperCase())
+      .replace("Of Shares", "of shares")
+      .replace("Of Voting", "of voting")
+      .replace("Or Control", "or control")
+      .replace("And ", "and ");
+  }
+
+  function statusBadgeHtml(status) {
+    const map = {
+      "active":             ["Active",             "badge-green"],
+      "dissolved":          ["Dissolved",          "badge-red"],
+      "liquidation":        ["Liquidation",        "badge-red"],
+      "receivership":       ["Receivership",       "badge-red"],
+      "administration":     ["Administration",     "badge-yellow"],
+      "voluntary-arrangement": ["Voluntary arrangement", "badge-yellow"],
+      "converted-closed":   ["Closed",             "badge-grey"],
+      "insolvency-proceedings": ["Insolvency",     "badge-red"],
+    };
+    const [label, cls] = map[status] ?? [status, "badge-grey"];
+    return label ? `<span class="badge ${cls}">${esc(label)}</span>` : "–";
+  }
+
+  function fieldRow(label, value) {
+    const id = uid();
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}">${esc(value)}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
+    </div>`;
+  }
+
+  function fieldRowCompanyNumber(label, number) {
+    const id = uid();
+    const chUrl = `https://find-and-update.company-information.service.gov.uk/company/${encodeURIComponent(number)}`;
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}">${esc(number)}</span>
+      <a class="copy-btn" href="${esc(chUrl)}" target="_blank" rel="noopener" style="text-decoration:none">CH ↗</a>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
+    </div>`;
+  }
+
+  function fieldRowMultiline(label, line1, line2) {
+    const id = uid();
+    const display = [line1, line2].filter(Boolean).join("<br>");
+    const copyVal = [line1, line2].filter(Boolean).join(", ");
+    return `<div class="field-row">
+      <span class="field-label">${esc(label)}</span>
+      <span class="field-value" id="${id}" data-copy="${esc(copyVal)}">${display || "–"}</span>
+      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
+    </div>`;
+  }
+
+  function uid() { return "fr_" + Math.random().toString(36).slice(2); }
+
+  function copyField(id, btn) {
+    const el  = document.getElementById(id);
+    const val = el?.dataset.copy ?? el?.innerText ?? "";
+    navigator.clipboard.writeText(val).then(() => {
+      btn.textContent = "Copied!"; btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1800);
+    }).catch(() => {
+      const ta = document.createElement("textarea");
+      ta.value = val; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      btn.textContent = "Copied!"; btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1800);
+    });
+  }
+
+  function esc(str) {
+    return String(str ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>
