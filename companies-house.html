@@ -249,6 +249,12 @@
     if (e.key === "Enter") doSearch();
   });
 
+  const _urlSearch = new URLSearchParams(location.search).get("search");
+  if (_urlSearch) {
+    document.getElementById("searchInput").value = _urlSearch.replace(/^["']|["']$/g, "");
+    doSearch();
+  }
+
   function isCompanyNumber(q) {
     return /^[A-Za-z]{0,2}\d{5,8}$/.test(q.trim());
   }
