@@ -1,4 +1,264 @@
 {
-  "updated": null,
-  "companies": []
+  "updated": "2026-06-14T20:02:14.962Z",
+  "companies": [
+    {
+      "isin": "NO0010345853",
+      "ticker": "AKERBP",
+      "name": "Aker BP ASA",
+      "insiders": [
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Arif",
+          "FIRST NAME\nUNSORTED": "Talar",
+          "TITLE \nUNSORTED": "SVP Ula",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Bakken",
+          "FIRST NAME\nUNSORTED": "Stine",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Berg",
+          "FIRST NAME\nUNSORTED": "Sarah",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected deputy member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Blaasmo",
+          "FIRST NAME\nUNSORTED": "Marit",
+          "TITLE \nUNSORTED": "SVP People and Safety",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Brandsrud",
+          "FIRST NAME\nUNSORTED": "Trond",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Cannon",
+          "FIRST NAME\nUNSORTED": "Anne",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Deputy Chair"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Chiang",
+          "FIRST NAME\nUNSORTED": "Ani",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected deputy member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Dolve",
+          "FIRST NAME\nUNSORTED": "Ine",
+          "TITLE \nUNSORTED": "SVP Alvheim",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Doyle",
+          "FIRST NAME\nUNSORTED": "Paula",
+          "TITLE \nUNSORTED": "Chief Digital Officer",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Eriksen",
+          "FIRST NAME\nUNSORTED": "Øyvind",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Chairman of the board"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Fauskanger",
+          "FIRST NAME\nUNSORTED": "Rune",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected deputy member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Fortescue",
+          "FIRST NAME\nUNSORTED": "Zeala",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Hargemark",
+          "FIRST NAME\nUNSORTED": "Marit",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Haugeberg",
+          "FIRST NAME\nUNSORTED": "Ingard",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Heppenstall",
+          "FIRST NAME\nUNSORTED": "Charles",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Hersvik",
+          "FIRST NAME\nUNSORTED": "Karl",
+          "TITLE \nUNSORTED": "CEO",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Hoff-Hansen",
+          "FIRST NAME\nUNSORTED": "Thomas",
+          "TITLE \nUNSORTED": "Chief Information Officer",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Høier",
+          "FIRST NAME\nUNSORTED": "Lars",
+          "TITLE \nUNSORTED": "SVP Yggdrasil",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Kongelf",
+          "FIRST NAME\nUNSORTED": "Per",
+          "TITLE \nUNSORTED": "COO",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Latin",
+          "FIRST NAME\nUNSORTED": "David",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Mogstad",
+          "FIRST NAME\nUNSORTED": "Marte",
+          "TITLE \nUNSORTED": "SVP PRO Growth",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Molvig",
+          "FIRST NAME\nUNSORTED": "Ole-Johan",
+          "TITLE \nUNSORTED": "SVP Valhall",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Opedal",
+          "FIRST NAME\nUNSORTED": "Torbjørg",
+          "TITLE \nUNSORTED": "SVP Skarv",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Reiter",
+          "FIRST NAME\nUNSORTED": "Doris",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Røkke",
+          "FIRST NAME\nUNSORTED": "Kjell",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Sandvik",
+          "FIRST NAME\nUNSORTED": "Knut",
+          "TITLE \nUNSORTED": "SVP Projects",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Sigmundstad",
+          "FIRST NAME\nUNSORTED": "Arne",
+          "TITLE \nUNSORTED": "SVP Drilling and Wells",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Staunton",
+          "FIRST NAME\nUNSORTED": "Niamh",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Deputy board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Sørhaug",
+          "FIRST NAME\nUNSORTED": "Petter",
+          "TITLE \nUNSORTED": "SVP Exploration & Reservoir Development",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Teien",
+          "FIRST NAME\nUNSORTED": "Ole",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected deputy member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Thomson",
+          "FIRST NAME\nUNSORTED": "Katherine",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Torvestad",
+          "FIRST NAME\nUNSORTED": "Charlotte",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected deputy member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Tønne",
+          "FIRST NAME\nUNSORTED": "David",
+          "TITLE \nUNSORTED": "Chief Financial Officer",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Vidnes",
+          "FIRST NAME\nUNSORTED": "Georg",
+          "TITLE \nUNSORTED": "SVP Grieg-Aasen",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Vik",
+          "FIRST NAME\nUNSORTED": "Tore",
+          "TITLE \nUNSORTED": "",
+          "POSITION\nUNSORTED": "Employee-elected board member"
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "Øvretveit",
+          "FIRST NAME\nUNSORTED": "Thomas",
+          "TITLE \nUNSORTED": "SVP Operations",
+          "POSITION\nUNSORTED": ""
+        }
+      ]
+    }
+  ]
 }
