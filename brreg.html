@@ -312,6 +312,13 @@
     if (e.key === "Enter") doSearch();
   });
 
+  // Kjør søk automatisk hvis ?search= er satt i URL-en
+  const _urlSearch = new URLSearchParams(location.search).get("search");
+  if (_urlSearch) {
+    document.getElementById("searchInput").value = _urlSearch.replace(/^["']|["']$/g, "");
+    doSearch();
+  }
+
   function isOrgNr(q) { return /^[\d\s]+$/.test(q); }
   function normalizeOrgNr(q) { return q.replace(/\s/g, ""); }
   function setStatus(html) { document.getElementById("status").innerHTML = html || ""; }
