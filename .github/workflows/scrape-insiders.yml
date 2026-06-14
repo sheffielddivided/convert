@@ -1,0 +1,35 @@
+name: Scrape Euronext primary insiders
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # kl. 06:00 UTC hver dag
+  workflow_dispatch:        # kan også kjøres manuelt fra GitHub
+
+permissions:
+  contents: write           # trengs for å pushe JSON-filen tilbake
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          cd scrapers
+          npm install
+
+      - name: Run scraper
+        run: node scrapers/euronext-insiders.js
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/primary-insiders.json
+          git diff --cached --quiet || git commit -m "chore: update primary insiders data [skip ci]"
+          git push
