@@ -385,14 +385,13 @@ var cbHistCache = null;
 async function loadCbComparison(days) {
   cbHistDays = days;
   if (cbHistCache) { renderCbComparison(days); return; }
-  var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
   var farStart = new Date(); farStart.setFullYear(farStart.getFullYear() - 21);
   var sp = farStart.toISOString().slice(0, 10);
-  var fedUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
+  var spMonth = sp.slice(0, 7);
   try {
     var [nbRes, fedRes, ecbRes] = await Promise.all([
       fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&startPeriod=' + sp),
-      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(fedUrl)).catch(function(){return null;}),
+      fetch('https://stats.oecd.org/SDMX-JSON/data/MEI_FIN/USA.IRSTCB01.ST.M/all?startTime=' + spMonth).catch(function(){return null;}),
       fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp).catch(function(){return null;})
     ]);
     var nbJson = await nbRes.json();
@@ -401,7 +400,7 @@ async function loadCbComparison(days) {
     var nbDates = nbJson.data.structure.dimensions.observation[0].values;
     var nbData = Object.keys(nbObs).map(function(k){ return {date: nbDates[parseInt(k)].id, value: parseFloat(nbObs[k][0])}; }).sort(function(a,b){return a.date<b.date?-1:1;});
     var fedData = [];
-    try { var fedJson = await fedRes.json(); fedData = (fedJson.observations||[]).filter(function(o){return o.value!=='.';}).map(function(o){return {date:o.date,value:parseFloat(o.value)};}); } catch(e) {}
+    try { fedData = parseOecdSeries(await fedRes.json()); } catch(e) {}
     var ecbData = [];
     try {
       var ecbJson = await ecbRes.json();
@@ -435,9 +434,10 @@ function renderCbComparison(days) {
     }
     return result;
   }
-  var nb = cbHistCache.nb.filter(function(o){return o.date>=sp;});
-  var fed = cbHistCache.fed.filter(function(o){return o.date>=sp;});
-  var ecb = cbHistCache.ecb.filter(function(o){return o.date>=sp;});
+  var spM = sp.slice(0,7);
+  var nb = cbHistCache.nb.filter(function(o){return o.date.slice(0,7)>=spM;});
+  var fed = cbHistCache.fed.filter(function(o){return o.date.slice(0,7)>=spM;});
+  var ecb = cbHistCache.ecb.filter(function(o){return o.date.slice(0,7)>=spM;});
   var nbVals = fwdFill(nb, labels);
   var fedVals = fwdFill(fed, labels);
   var ecbVals = fwdFill(ecb, labels);
@@ -665,21 +665,18 @@ async function loadInterest() {
   var container = document.getElementById('interestContent');
   container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching interest rates\u2026</span></div>';
   try {
-    var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
-    var _fredCurUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&sort_order=desc&limit=1&file_type=json';
     var _sixMoAgo = new Date(); _sixMoAgo.setMonth(_sixMoAgo.getMonth()-6);
     var _ecbCurUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + _sixMoAgo.toISOString().slice(0,10);
     var [prRes, fedRes, ecbRes] = await Promise.all([
       fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no'),
-      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fredCurUrl)).catch(function(){return null;}),
+      fetch('https://stats.oecd.org/SDMX-JSON/data/MEI_FIN/USA.IRSTCB01.ST.M/all?lastNObservations=1').catch(function(){return null;}),
       fetch(_ecbCurUrl).catch(function(){return null;})
     ]);
     var prJson = await prRes.json();
     var fedRate = null, fedDate = '';
     try {
-      var fedJson = await fedRes.json();
-      var fedObs = fedJson.observations;
-      if (fedObs && fedObs.length) { var fo = fedObs[0]; fedRate = parseFloat(fo.value); fedDate = fo.date; }
+      var fedParsed = parseOecdSeries(await fedRes.json());
+      if (fedParsed.length) { fedRate = fedParsed[fedParsed.length-1].value; fedDate = fedParsed[fedParsed.length-1].date; }
     } catch(e) {}
     var ecbRate = null, ecbDate = '';
     try {
@@ -741,6 +738,16 @@ var cpiChartInstance = null, ppiChartInstance = null, infCompChartInstance = nul
 var infCpi = null, infPpi = null, infN = 60;
 var infUsCpi = null, infEuHicp = null;
 var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240}];
+
+function parseOecdSeries(json) {
+  var ds = json.dataSets[0];
+  var sk = Object.keys(ds.series)[0];
+  var obs = ds.series[sk].observations;
+  var times = json.structure.dimensions.observation[0].values;
+  return Object.keys(obs).map(function(k){ return {date: times[parseInt(k)].id, value: obs[k][0]}; })
+    .filter(function(d){ return d.value !== null; })
+    .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+}
 
 function parseStat2(data, dim1Key, dim2Key) {
   var tidCat = data.dimension[dim1Key].category;
@@ -885,38 +892,18 @@ async function loadInflation() {
   var CPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/14700/data?lang=en&outputFormat=json-stat2&valuecodes[Tid]=*&codelist[VareTjenesteGrp]=vs_CoiCop2018Kpi01&valuecodes[ContentsCode]=KpiIndMnd,Tolvmanedersendring&heading=ContentsCode&stub=Tid';
   var PPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/12462/data?lang=en&outputFormat=json-stat2&valuecodes[ContentsCode]=Indeksnivo,Tolvmanedersendring&valuecodes[Tid]=*&valuecodes[NaringUtenriks]=SNN0&codelist[NaringUtenriks]=vs_NaringPPI1&heading=NaringUtenriks,ContentsCode&stub=Tid';
   var EU_HICP_URL = 'https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?format=jsondata';
-  var yr = new Date().getFullYear();
-  var blsBase = 'https://api.bls.gov/publicAPI/v1/timeseries/data/CUUR0000SA0';
-  var blsUrl1 = blsBase + '?startyear=' + (yr - 19) + '&endyear=' + (yr - 10);
-  var blsUrl2 = blsBase + '?startyear=' + (yr - 9) + '&endyear=' + yr;
+  var US_CPI_URL = 'https://stats.oecd.org/SDMX-JSON/data/MEI_PRICES/USA.CPALTT01.GP.M/all?startTime=2003-01';
   try {
-    var [ssbCpiRes, ssbPpiRes, bls1Res, bls2Res, euHicpRes] = await Promise.all([
+    var [ssbCpiRes, ssbPpiRes, usCpiRes, euHicpRes] = await Promise.all([
       fetch(CPI_URL),
       fetch(PPI_URL),
-      fetch(blsUrl1).catch(function(){return null;}),
-      fetch(blsUrl2).catch(function(){return null;}),
+      fetch(US_CPI_URL).catch(function(){return null;}),
       fetch(EU_HICP_URL).catch(function(){return null;})
     ]);
     infCpi = parseStat2(await ssbCpiRes.json(), 'Tid', 'ContentsCode');
     infPpi = parseStat2(await ssbPpiRes.json(), 'Tid', 'ContentsCode');
     infUsCpi = [];
-    try {
-      function parseBlsSeries(json) {
-        var s = json.Results && json.Results.series && json.Results.series[0];
-        if (!s) return [];
-        return (s.data || []).filter(function(d){ return d.period !== 'M13'; }).map(function(d){
-          return {date: d.year + '-' + d.period.slice(1), value: parseFloat(d.value)};
-        }).filter(function(d){ return !isNaN(d.value); });
-      }
-      var raw = [];
-      if (bls1Res) raw = raw.concat(parseBlsSeries(await bls1Res.json()));
-      if (bls2Res) raw = raw.concat(parseBlsSeries(await bls2Res.json()));
-      raw.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-      var seen = {}; raw = raw.filter(function(d){ if (seen[d.date]) return false; seen[d.date]=true; return true; });
-      for (var i = 12; i < raw.length; i++) {
-        infUsCpi.push({date: raw[i].date, value: (raw[i].value / raw[i-12].value - 1) * 100});
-      }
-    } catch(e) { infUsCpi = []; }
+    try { infUsCpi = parseOecdSeries(await usCpiRes.json()); } catch(e) { infUsCpi = []; }
     infEuHicp = [];
     try {
       var euJson = await euHicpRes.json();
