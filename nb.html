@@ -392,7 +392,7 @@ async function loadCbComparison(days) {
   try {
     var [nbRes, fedRes, ecbRes] = await Promise.all([
       fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&startPeriod=' + sp),
-      fetch('https://corsproxy.io/?' + fedUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(fedUrl)).catch(function(){return null;}); }),
+      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(fedUrl)).catch(function(){return null;}),
       fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp).catch(function(){return null;})
     ]);
     var nbJson = await nbRes.json();
@@ -515,9 +515,7 @@ async function loadFedHistorical(days) {
   try {
     var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
     var _fedHistUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
-    var res = await fetch('https://corsproxy.io/?' + _fedHistUrl)
-      .catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl)); })
-      .catch(function(){ return fetch(_fedHistUrl); });
+    var res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl));
     var json = await res.json();
     var obs = (json.observations || []).filter(function(o){ return o.value !== '.'; });
     var labels = obs.map(function(o) { return o.date; });
@@ -673,7 +671,7 @@ async function loadInterest() {
     var _ecbCurUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + _sixMoAgo.toISOString().slice(0,10);
     var [prRes, fedRes, ecbRes] = await Promise.all([
       fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no'),
-      fetch(_fredCurUrl).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fredCurUrl)).catch(function(){return null;}); }),
+      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fredCurUrl)).catch(function(){return null;}),
       fetch(_ecbCurUrl).catch(function(){return null;})
     ]);
     var prJson = await prRes.json();
@@ -893,7 +891,7 @@ async function loadInflation() {
     var [ssbCpiRes, ssbPpiRes, usCpiRes, euHicpRes] = await Promise.all([
       fetch(CPI_URL),
       fetch(PPI_URL),
-      fetch('https://corsproxy.io/?' + US_CPI_URL).catch(function(){ return fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(US_CPI_URL)).catch(function(){return null;}); }),
+      fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(US_CPI_URL)).catch(function(){return null;}),
       fetch(EU_HICP_URL).catch(function(){return null;})
     ]);
     infCpi = parseStat2(await ssbCpiRes.json(), 'Tid', 'ContentsCode');
