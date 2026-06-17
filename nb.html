@@ -626,7 +626,7 @@ async function loadPolicyPressRelease() {
   var rssUrl = 'https://www.norges-bank.no/en/rss-feeds/Press-releases---Norges-Bank/';
   var xmlText = '';
   try { var res = await fetch(rssUrl); if (res.ok) { xmlText = await res.text(); } } catch(e) {}
-  if (!xmlText) { try { var proxyUrl = 'CF_PROXY + encodeURIComponent(rssUrl); var res2 = await fetch(proxyUrl); if (res2.ok) { xmlText = await res2.text(); } } catch(e) {} }
+  if (!xmlText) { try { var proxyUrl = CF_PROXY + encodeURIComponent(rssUrl); var res2 = await fetch(proxyUrl); if (res2.ok) { xmlText = await res2.text(); } } catch(e) {} }
   if (!xmlText) { placeholder.innerHTML = ''; return; }
   try {
     var parser = new DOMParser();
