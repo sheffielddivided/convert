@@ -513,13 +513,10 @@ async function loadFedHistorical(days) {
   var start = new Date(); start.setDate(start.getDate() - days);
   var sp = start.toISOString().slice(0, 10);
   try {
-    var _fredKey = '178b6a436dc612d9cf52e4fbc2b402ff';
-    var _fedHistUrl = 'https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=' + _fredKey + '&observation_start=' + sp + '&file_type=json';
-    var res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(_fedHistUrl));
-    var json = await res.json();
-    var obs = (json.observations || []).filter(function(o){ return o.value !== '.'; });
-    var labels = obs.map(function(o) { return o.date; });
-    var values = obs.map(function(o) { return parseFloat(o.value); });
+    var res = await fetch('https://stats.oecd.org/SDMX-JSON/data/MEI_FIN/USA.IRSTCB01.ST.M/all?startTime=' + sp.slice(0,7));
+    var parsed = parseOecdSeries(await res.json());
+    var labels = parsed.map(function(o){ return o.date; });
+    var values = parsed.map(function(o){ return o.value; });
     histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#dc2626', 'rgba(220,38,38,0.18)');
     makeRateStats(stats, values);
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load Fed data</div>'; }
