@@ -1,184 +1,306 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="no">
+
 <head>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Sveitsisk selskapsregister</title>
 
 <style>
-body {
-    font-family: system-ui;
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 20px;
+
+body{
+font-family:system-ui;
+max-width:1000px;
+margin:40px auto;
+padding:20px;
 }
 
-input {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
+h1{
+margin-bottom:20px;
 }
 
-button {
-    margin-top: 10px;
-    padding: 10px 18px;
+.search{
+display:flex;
+gap:10px;
 }
 
-.result {
-    border: 1px solid #ddd;
-    padding: 14px;
-    margin-top: 10px;
-    border-radius: 8px;
+input{
+flex:1;
+padding:14px;
+font-size:16px;
 }
 
-.small {
-    color: #666;
+button{
+padding:14px 22px;
+cursor:pointer;
 }
+
+#status{
+margin-top:16px;
+color:#555;
+}
+
+.result{
+border:1px solid #ddd;
+border-radius:10px;
+padding:16px;
+margin-top:12px;
+}
+
+.name{
+font-size:18px;
+font-weight:700;
+}
+
+.row{
+margin-top:6px;
+}
+
+.error{
+background:#ffe9e9;
+padding:12px;
+border-radius:8px;
+}
+
 </style>
+
 </head>
 
 <body>
 
-<h1>Søk i sveitsisk selskapsregister</h1>
+<h1>Sveitsisk selskapsregister</h1>
+
+<div class="search">
 
 <input
-    id="query"
-    placeholder="Navn eller CHE-nummer (f.eks. CHE-449.838.153)"
->
+id="query"
+placeholder="Søk på selskapsnavn eller CHE-nummer"
+/>
 
-<button onclick="search()">Søk</button>
+<button onclick="search()">
+Søk
+</button>
+
+</div>
 
 <div id="status"></div>
+
 <div id="results"></div>
 
 <script>
 
-async function zefixSearch(searchText) {
+const API =
+"https://snowy-frog-db9f.batil-kjekken.workers.dev";
 
-    const endpoints = [
-        // søk som navn
-        fetch(
-            `https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search?name=${encodeURIComponent(searchText)}`
-        ),
+async function search(){
 
-        // søk som uid
-        fetch(
-            `https://www.zefix.admin.ch/ZefixPublicREST/api/v1/company/search?uid=${encodeURIComponent(searchText)}`
-        )
-    ];
+const q =
+document
+.getElementById("query")
+.value
+.trim();
 
-    const responses = await Promise.allSettled(endpoints);
-
-    let merged = [];
-
-    for (const r of responses) {
-
-        if (r.status !== "fulfilled")
-            continue;
-
-        if (!r.value.ok)
-            continue;
-
-        const json = await r.value.json();
-
-        if (Array.isArray(json))
-            merged.push(...json);
-    }
-
-    // fjern duplikater på uid
-    const unique =
-        Object.values(
-            merged.reduce((acc, company) => {
-
-                const key =
-                    company.uid ||
-                    company.ehid ||
-                    company.name;
-
-                acc[key] = company;
-
-                return acc;
-
-            }, {})
-        );
-
-    return unique.slice(0, 10);
+if(!q){
+return;
 }
 
-async function search() {
+status.textContent =
+"Søker …";
 
-    const q =
-        document
-            .getElementById("query")
-            .value
-            .trim();
+results.innerHTML =
+"";
 
-    if (!q)
-        return;
+try{
 
-    results.innerHTML = "";
-    status.textContent = "Søker…";
+const r =
+await fetch(
+`${API}?q=${
+encodeURIComponent(q)
+}`
+);
 
-    try {
+const text =
+await r.text();
 
-        const data =
-            await zefixSearch(q);
+let data;
 
-        status.textContent =
-            `${data.length} treff`;
+try{
 
-        results.innerHTML =
-            data.map(c => `
-                <div class="result">
+data =
+JSON.parse(
+text
+);
 
-                    <strong>${c.name ?? "-"}</strong>
+}
+catch{
 
-                    <div>
-                        UID:
-                        ${c.uid ?? "-"}
-                    </div>
+throw new Error(
+text
+);
 
-                    <div>
-                        Status:
-                        ${c.status ?? "-"}
-                    </div>
+}
 
-                    <div>
-                        Kommune:
-                        ${c.legalSeat ?? "-"}
-                    </div>
+if(!r.ok){
 
-                </div>
-            `).join("");
+throw new Error(
 
-        if (!data.length)
-            results.innerHTML =
-                "<p>Ingen treff</p>";
+data.error
+||
+JSON.stringify(
+data
+)
 
-    }
+);
 
-    catch (e) {
+}
 
-        status.textContent =
-            "Feil ved oppslag";
+status.textContent =
+`${data.length} treff`;
 
-        console.error(e);
+if(
+!Array.isArray(
+data
+)
+||
+data.length===0
+){
 
-    }
+results.innerHTML =
+`
+<div class="result">
+Ingen treff
+</div>
+`;
+
+return;
+
+}
+
+results.innerHTML =
+data
+.slice(
+0,
+10
+)
+.map(
+company=>`
+
+<div class="result">
+
+<div class="name">
+
+${
+company.name
+||
+"Ukjent"
+}
+
+</div>
+
+<div class="row">
+
+UID:
+<b>
+
+${
+company.uid
+||
+"—"
+}
+
+</b>
+
+</div>
+
+<div class="row">
+
+Status:
+${
+company.status
+||
+"—"
+}
+
+</div>
+
+<div class="row">
+
+Sete:
+${
+company.legalSeat
+||
+"—"
+}
+
+</div>
+
+<div class="row">
+
+Adresse:
+${
+company.address
+||
+"—"
+}
+
+</div>
+
+</div>
+
+`
+)
+.join("");
+
+}
+catch(err){
+
+status.textContent =
+"";
+
+results.innerHTML =
+`
+<div class="error">
+
+Feil:
+
+<br><br>
+
+${err.message}
+
+</div>
+`;
+
+console.error(
+err
+);
+
+}
 
 }
 
 document
-.getElementById("query")
+.getElementById(
+"query"
+)
 .addEventListener(
-    "keydown",
-    e => {
-        if (e.key === "Enter")
-            search();
-    });
+"keydown",
+e=>{
+
+if(
+e.key==="Enter"
+){
+
+search();
+
+}
+
+}
+);
 
 </script>
 
 </body>
+
 </html>
