@@ -736,7 +736,7 @@ async function loadInterest() {
 var cpiChartInstance = null, ppiChartInstance = null, infCompChartInstance = null;
 var infCpi = null, infPpi = null, infN = 60;
 var infUsCpi = null, infEuHicp = null;
-var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240}];
+var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240},{label:'30Y',n:360},{label:'All',n:9999}];
 
 function parseOecdSeries(json) {
   var ds = json.dataSets[0];
