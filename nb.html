@@ -822,12 +822,6 @@ function renderInflation(N) {
     rangeBtns +
     '<div class="section-title">\ud83c\udf0d CPI Comparison</div>' +
     '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="infCompCanvas"></canvas></div></div>' +
-    '<div class="section-title" style="margin-top:16px">\ud83d\udcc8 Norway CPI</div>' +
-    '<div class="inf-stat-row">' +
-      '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestCpi) + '">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
-      '<div class="stat-box"><div class="label">Period</div><div class="value" style="font-size:14px">' + cpiLabels[cpiLabels.length-1] + '</div></div>' +
-    '</div>' +
-    '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="cpiChart"></canvas></div></div>' +
     '<div class="section-title" style="margin-top:16px">\ud83c\udfed Norway PPI</div>' +
     '<div class="inf-stat-row">' +
       '<div class="stat-box"><div class="label">12-month change</div><div class="value" style="color:' + colVal(latestPpi) + '">' + (latestPpi != null ? latestPpi.toFixed(1) + '%' : '\u2014') + '</div></div>' +
