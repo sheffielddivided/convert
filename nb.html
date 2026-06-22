@@ -829,11 +829,9 @@ function renderInflation(N) {
     '</div>' +
     '<div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="ppiChart"></canvas></div></div>';
 
-  if (cpiChartInstance) { cpiChartInstance.destroy(); cpiChartInstance = null; }
   if (ppiChartInstance) { ppiChartInstance.destroy(); ppiChartInstance = null; }
   if (infCompChartInstance) { infCompChartInstance.destroy(); infCompChartInstance = null; }
 
-  cpiChartInstance = makeInflationChart('cpiChart', cpiLabels, cpi12m, '#0055b3', 'rgba(0,85,179,0.15)');
   ppiChartInstance = makeInflationChart('ppiChart', ppiLabels, ppi12m, '#16a34a', 'rgba(22,163,74,0.15)');
 
   // Build comparison chart with monthly labels
