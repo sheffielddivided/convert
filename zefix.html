@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zefix lookup</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #eef1f6;
+  margin: 0;
+  padding: 2rem;
+}
+
+.container { max-width: 800px; margin: 0 auto; }
+
+h1 { margin-bottom: 0.5rem; }
+
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+input, select {
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 0.6rem 1rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.field {
+  margin: 0.3rem 0;
+}
+
+.result {
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.result:hover {
+  background: #fef2f2;
+}
+
+.hidden { display: none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Zefix lookup</h1>
+<p>Search Swiss companies</p>
+
+<div class="search-row">
+  <input id="searchInput" placeholder="Company name or CHE-nummer">
+  <button onclick="doSearch()">Search</button>
+</div>
+
+<div id="status"></div>
+<div id="results"></div>
+<div id="company" class="card hidden"></div>
+
+</div>
+
+<script>
+
+// ✅ DIN WORKER
+const BASE = "https://zefix.batil-kjekken.workers.dev";
+
+// ===== Helpers =====
+function setStatus(msg) {
+  document.getElementById("status").innerText = msg || "";
+}
+
+function clear() {
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("company").classList.add("hidden");
+}
+
+// ===== API =====
+async function api(path) {
+  const res = await fetch(BASE + path);
+  if (!res.ok) throw new Error("API error");
+  return res.json();
+}
+
+// ===== Search =====
+async function doSearch() {
+  const q = document.getElementById("searchInput").value.trim();
+  if (!q) return;
+
+  clear();
+  setStatus("Searching...");
+
+  try {
+
+    // UID direkte
+    if (q.startsWith("CHE")) {
+      const data = await api(`/company/uid/${q.replace(/\\D/g,"")}`);
+      showCompany(data[0]);
+      return;
+    }
+
+    const list = await api(`/search?q=` + encodeURIComponent(q));
+
+    if (!list.length) {
+      setStatus("No results");
+      return;
+    }
+
+    if (list.length === 1) {
+      showCompanyFull(list[0]);
+      return;
+    }
+
+    showResults(list);
+
+  } catch (e) {
+    setStatus("Error");
+  }
+}
+
+// ===== Result list =====
+function showResults(list) {
+  setStatus("");
+
+  const div = document.getElementById("results");
+
+  list.slice(0,10).forEach(c => {
+    const el = document.createElement("div");
+    el.className = "result";
+    el.innerText = `${c.name} (${c.uid})`;
+    el.onclick = () => showCompanyFull(c);
+    div.appendChild(el);
+  });
+}
+
+// ===== Load full =====
+async function showCompanyFull(c) {
+  setStatus("Loading...");
+  const full = await api(`/company/ehraid/${c.ehraid}`);
+  setStatus("");
+  showCompany(full);
+}
+
+// ===== Display =====
+function showCompany(c) {
+
+  const div = document.getElementById("company");
+  div.classList.remove("hidden");
+
+  div.innerHTML = `
+    <h2>${c.name}</h2>
+
+    <div class="field"><b>UID:</b> ${c.uid}</div>
+    <div class="field"><b>EHRA:</b> ${c.ehraid}</div>
+    <div class="field"><b>Status:</b> ${c.status}</div>
+    <div class="field"><b>Canton:</b> ${c.canton}</div>
+    <div class="field"><b>Seat:</b> ${c.legalSeat}</div>
+    <div class="field"><b>Address:</b> ${(c.address?.street || "")} ${(c.address?.houseNumber || "")}, ${c.address?.city || ""}</div>
+
+    <hr>
+
+    <div class="field"><b>Purpose:</b> ${c.purpose || "-"}</div>
+  `;
+}
+
+</script>
+</body>
+</html>
