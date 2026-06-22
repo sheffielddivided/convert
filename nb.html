@@ -66,6 +66,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .range-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .range-btns button{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .18s;font-weight:500}
 .range-btns button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.range-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.range-btn{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer;transition:all .18s;font-weight:600;-webkit-user-select:none;user-select:none}
+.range-btn:active{transform:scale(0.95)}
+.range-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(0,85,179,0.25)}
 .chart-container{flex:1;min-height:250px;position:relative}
 .chart-stats{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
 .stat-box{flex:1;min-width:80px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
@@ -736,7 +740,7 @@ async function loadInterest() {
 var cpiChartInstance = null, ppiChartInstance = null, infCompChartInstance = null;
 var infCpi = null, infPpi = null, infN = 60;
 var infUsCpi = null, infEuHicp = null;
-var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240},{label:'30Y',n:360},{label:'All',n:9999}];
+var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240},{label:'30Y',n:360}];
 
 function parseOecdSeries(json) {
   var ds = json.dataSets[0];
