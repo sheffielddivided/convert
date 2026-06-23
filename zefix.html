@@ -1,575 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zefix lookup</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #eef1f6;
-      color: #1a1a2e;
-      margin: 0;
-      padding: 2rem 1rem 4rem;
-      min-height: 100vh;
-    }
-    .container { max-width: 780px; margin: 0 auto; }
-    /* ── Header ── */
-    .page-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.3rem; }
-    .page-header .logo {
-      width: 36px; height: 36px; background: #dc2626;
-      border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .page-header .logo svg { width: 20px; height: 20px; fill: #fff; }
-    h1 { font-size: 1.55rem; font-weight: 800; margin: 0; color: #1e293b; }
-    .subtitle { color: #64748b; font-size: 0.88rem; margin: 0 0 1.5rem 52px; }
-    /* ── Search ── */
-    .search-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-    #searchInput, #cantonSelect {
-      padding: 0.7rem 1rem; font-size: 1rem;
-      border: 1.5px solid #cbd5e1; border-radius: 10px;
-      outline: none; background: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    #searchInput { flex: 1; }
-    #cantonSelect { width: 118px; }
-    #searchInput:focus, #cantonSelect:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
-    .filters { display:flex; align-items:center; gap:1rem; margin: 0 0 1.5rem 52px; color:#64748b; font-size:0.84rem; }
-    .filters label { display:inline-flex; align-items:center; gap:0.35rem; cursor:pointer; }
-    button.primary {
-      padding: 0.7rem 1.4rem; background: #dc2626; color: #fff;
-      font-size: 1rem; font-weight: 600; border: none; border-radius: 10px;
-      cursor: pointer; transition: background 0.15s, transform 0.1s;
-      white-space: nowrap; box-shadow: 0 1px 3px rgba(220,38,38,0.3);
-    }
-    button.primary:hover { background: #b91c1c; }
-    button.primary:active { transform: scale(0.97); }
-    button.primary:disabled { background: #fca5a5; box-shadow: none; cursor: default; }
-    /* ── Cards ── */
-    .card {
-      background: #fff; border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
-      margin-bottom: 1.25rem; overflow: hidden;
-    }
-    .card-header {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.9rem 1.4rem; border-bottom: 1px solid #f1f5f9; background: #f8fafc;
-    }
-    .card-icon {
-      width: 28px; height: 28px; border-radius: 7px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .card-icon svg { width: 15px; height: 15px; }
-    .card-icon.red    { background: #fee2e2; } .card-icon.red svg    { fill: #dc2626; }
-    .card-icon.blue   { background: #dbeafe; } .card-icon.blue svg   { fill: #2563eb; }
-    .card-icon.violet { background: #ede9fe; } .card-icon.violet svg { fill: #7c3aed; }
-    .card-icon.green  { background: #dcfce7; } .card-icon.green svg  { fill: #15803d; }
-    .card-icon.amber  { background: #fef3c7; } .card-icon.amber svg  { fill: #b45309; }
-    .card h2 {
-      font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: #475569; margin: 0;
-    }
-    .card-body { padding: 1.1rem 1.4rem; }
-    /* ── Field rows ── */
-    .field-row {
-      display: flex; align-items: baseline; gap: 0.5rem;
-      padding: 0.45rem 0; border-bottom: 1px solid #f1f5f9;
-    }
-    .field-row:last-child { border-bottom: none; }
-    .field-label {
-      font-size: 0.75rem; font-weight: 600; color: #94a3b8;
-      width: 175px; flex-shrink: 0;
-      text-transform: uppercase; letter-spacing: 0.04em; padding-top: 0.1rem;
-    }
-    .field-value { font-size: 0.95rem; flex: 1; word-break: break-word; line-height: 1.5; }
-    .copy-btn {
-      padding: 0.18rem 0.5rem; font-size: 0.72rem;
-      background: #f1f5f9; border: 1px solid #e2e8f0;
-      border-radius: 5px; cursor: pointer; color: #64748b;
-      transition: background 0.1s, color 0.1s; flex-shrink: 0;
-    }
-    .copy-btn:hover { background: #e2e8f0; color: #1e293b; }
-    .copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #15803d; }
-    .copy-btn.disabled { opacity: 0.45; cursor: default; }
-    /* ── Status badge ── */
-    .badge {
-      display: inline-block; font-size: 0.72rem; font-weight: 600;
-      padding: 0.1rem 0.45rem; border-radius: 4px; vertical-align: middle;
-    }
-    .badge-green  { background: #dcfce7; color: #15803d; }
-    .badge-red    { background: #fee2e2; color: #991b1b; }
-    .badge-yellow { background: #fef9c3; color: #854d0e; }
-    .badge-grey   { background: #f1f5f9; color: #475569; }
-    /* ── Results list ── */
-    .results-list { list-style: none; margin: 0; padding: 0; }
-    .results-list li {
-      padding: 0.8rem 1rem; cursor: pointer;
-      transition: background 0.1s; display: flex; flex-direction: column; gap: 0.15rem;
-    }
-    .results-list li:hover { background: #fff1f2; }
-    .results-list li + li { border-top: 1px solid #f1f5f9; }
-    .result-name { font-weight: 600; font-size: 0.96rem; }
-    .result-sub  { font-size: 0.82rem; color: #64748b; }
-    /* ── Messages ── */
-    .msg {
-      padding: 0.75rem 1rem; border-radius: 9px;
-      font-size: 0.9rem; margin-bottom: 1.25rem;
-    }
-    .msg.info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-    .msg.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .msg.error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    /* ── Tables / list sections ── */
-    .mini-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    .mini-table th {
-      text-align: left; font-size: 0.72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em;
-      color: #94a3b8; padding: 0 0 0.5rem; border-bottom: 2px solid #f1f5f9;
-    }
-    .mini-table td { padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
-    .mini-table tr:last-child td { border-bottom: none; }
-    .section-title {
-      font-size: 0.75rem; font-weight: 700; color: #dc2626;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      margin-bottom: 0.35rem; padding-bottom: 0.25rem;
-      border-bottom: 2px solid #fee2e2;
-    }
-    .muted { color:#94a3b8; }
-    .small { font-size:0.78rem; }
-    /* ── Spinner ── */
-    .spinner {
-      display: inline-block; width: 17px; height: 17px;
-      border: 2px solid #fecaca; border-top-color: #dc2626;
-      border-radius: 50%; animation: spin 0.6s linear infinite;
-      vertical-align: middle; margin-right: 0.4rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #status { margin-bottom: 0.75rem; }
-    .hidden { display: none !important; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zefix lookup</title>
 
-    .search-link {
-      display: inline-flex; align-items: center; gap: 0.25rem;
-      padding: 0.18rem 0.5rem; font-size: 0.71rem; font-weight: 600;
-      border-radius: 5px; text-decoration: none; border: 1px solid;
-      transition: background 0.1s; white-space: nowrap; line-height: 1.4;
-    }
-    .link-zefix { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-    .link-zefix:hover { background: #fecaca; }
-    .link-canton { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
-    .link-canton:hover { background: #bfdbfe; }
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #eef1f6;
+  color: #1a1a2e;
+  margin: 0;
+  padding: 2rem 1rem 4rem;
+}
 
-    @media (max-width: 680px) {
-      .search-row { flex-direction: column; }
-      #cantonSelect { width: 100%; }
-      .filters { margin-left: 0; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
-      .field-row { align-items: flex-start; flex-wrap: wrap; }
-      .field-label { width: 100%; }
-    }
-  </style>
+/* Layout */
+.container { max-width: 780px; margin: 0 auto; }
+
+/* Header */
+.page-header { display:flex; align-items:center; gap:0.7rem; margin-bottom:0.4rem; }
+.logo {
+  width:36px; height:36px;
+  background:#dc2626;
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:bold;
+}
+h1 { margin:0; font-size:1.5rem; }
+.subtitle { margin-left:44px; color:#64748b; font-size:0.9rem; margin-bottom:1.5rem; }
+
+/* Search */
+.search-row { display:flex; gap:0.5rem; margin-bottom:1.2rem; }
+#searchInput {
+  flex:1;
+  padding:0.7rem 1rem;
+  border-radius:10px;
+  border:1.5px solid #cbd5e1;
+}
+button {
+  background:#dc2626;
+  color:white;
+  border:none;
+  padding:0.7rem 1.4rem;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+/* Result list */
+.results-list { list-style:none; padding:0; margin:0; }
+.results-list li {
+  padding:0.8rem 1rem;
+  cursor:pointer;
+}
+.results-list li:hover { background:#fff1f2; }
+
+.result-name { font-weight:600; }
+.result-sub { font-size:0.82rem; color:#64748b; }
+
+/* Card */
+.card {
+  background:white;
+  border-radius:14px;
+  margin-top:1rem;
+  overflow:hidden;
+}
+.card-header {
+  padding:0.9rem 1.4rem;
+  background:#f8fafc;
+  border-bottom:1px solid #eee;
+  font-size:0.8rem;
+  font-weight:bold;
+}
+.card-body { padding:1rem 1.4rem; }
+
+/* Fields */
+.field-row {
+  display:flex; gap:0.5rem;
+  padding:0.45rem 0;
+  border-bottom:1px solid #f1f5f9;
+}
+.field-row:last-child { border-bottom:none; }
+
+.field-label {
+  width:170px;
+  font-size:0.75rem;
+  color:#94a3b8;
+}
+.field-value { flex:1; }
+
+/* Buttons */
+.copy-btn {
+  font-size:0.7rem;
+  padding:0.2rem 0.5rem;
+  border:1px solid #ddd;
+  background:#f9f9f9;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.link-btn {
+  font-size:0.7rem;
+  padding:0.2rem 0.5rem;
+  border-radius:5px;
+  border:1px solid;
+  text-decoration:none;
+}
+.link-zefix   { background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+.link-canton  { background:#dbeafe; border-color:#bfdbfe; color:#1e40af; }
+
+/* Status */
+.badge {
+  padding:0.1rem 0.4rem;
+  font-size:0.7rem;
+  border-radius:4px;
+}
+.green { background:#dcfce7; color:#15803d; }
+.red { background:#fee2e2; color:#991b1b; }
+.yellow { background:#fef9c3; color:#854d0e; }
+
+.hidden { display:none; }
+</style>
 </head>
+
 <body>
+
 <div class="container">
-  <div class="page-header">
-    <div class="logo">
-      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 16H6v-2h5v2zm7-4H6v-2h12v2zm0-4H6V9h12v2zm0-4H6V5h12v2z"/></svg>
-    </div>
-    <h1>Zefix lookup</h1>
-  </div>
-  <p class="subtitle">Search by UID, EHRA-ID or Swiss company name</p>
 
-  <div class="search-row">
-    <input id="searchInput" type="text" placeholder="CHE-123.456.789, EHRA-ID or company name…" autocomplete="off">
-    <select id="cantonSelect" title="Optional canton filter">
-      <option value="">All cantons</option>
-      <option>AG</option><option>AI</option><option>AR</option><option>BE</option><option>BL</option><option>BS</option>
-      <option>FR</option><option>GE</option><option>GL</option><option>GR</option><option>JU</option><option>LU</option>
-      <option>NE</option><option>NW</option><option>OW</option><option>SG</option><option>SH</option><option>SO</option>
-      <option>SZ</option><option>TG</option><option>TI</option><option>UR</option><option>VD</option><option>VS</option>
-      <option>ZG</option><option>ZH</option>
-    </select>
-    <button class="primary" id="searchBtn" onclick="doSearch()">Search</button>
-  </div>
-  <div class="filters">
-    <label><input id="activeOnly" type="checkbox" checked> Active only</label>
-    <span>Use <strong>*</strong> as wildcard in name searches.</span>
-  </div>
+<div class="page-header">
+  <div class="logo">CH</div>
+  <h1>Zefix lookup</h1>
+</div>
+<p class="subtitle">Search Swiss companies (all cantons)</p>
 
-  <div id="status"></div>
-  <div id="resultsArea"></div>
+<div class="search-row">
+  <input id="searchInput" placeholder="CHE-123.456.789, EHRA-ID or company name">
+  <button onclick="doSearch()">Search</button>
+</div>
 
-  <!-- Company card -->
-  <div id="companyCard" class="card hidden">
-    <div class="card-header">
-      <div class="card-icon red">
-        <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-      </div>
-      <h2>Company details</h2>
-    </div>
-    <div class="card-body" id="companyCardBody"></div>
-  </div>
+<div id="status"></div>
+<div id="results"></div>
 
-  <!-- Purpose / registry card -->
-  <div id="registryCard" class="card hidden">
-    <div class="card-header">
-      <div class="card-icon blue">
-        <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM13 9V3.5L18.5 9H13z"/></svg>
-      </div>
-      <h2>Registry information</h2>
-    </div>
-    <div class="card-body" id="registryCardBody"></div>
-  </div>
+<div id="company" class="card hidden">
+  <div class="card-header">Company details</div>
+  <div id="companyBody" class="card-body"></div>
+</div>
 
-  <!-- Publications card -->
-  <div id="publicationsCard" class="card hidden">
-    <div class="card-header">
-      <div class="card-icon amber">
-        <svg viewBox="0 0 24 24"><path d="M20 11H4V8h16v3zm0 2H4v3h16v-3zM3 5h18v2H3V5zm0 13h18v1H3v-1z"/></svg>
-      </div>
-      <h2>Latest SOGC publications</h2>
-    </div>
-    <div class="card-body" id="publicationsCardBody"></div>
-  </div>
-
-  <!-- Related card -->
-  <div id="relatedCard" class="card hidden">
-    <div class="card-header">
-      <div class="card-icon violet">
-        <svg viewBox="0 0 24 24"><path d="M7 11H3V3h8v4H7v4zm14 0h-4V7h-4V3h8v8zM7 21H3v-8h4v4h4v4H7zm14 0h-8v-4h4v-4h4v8z"/></svg>
-      </div>
-      <h2>Related companies</h2>
-    </div>
-    <div class="card-body" id="relatedCardBody"></div>
-  </div>
 </div>
 
 <script>
-  // API credentials live in the Cloudflare Worker, not in this HTML file.
-  const ZEFIX_PROXY = "https://zefix.batil-kjekken.workers.dev";
-  const BASE = ZEFIX_PROXY.replace(/\/$/, "");
 
-  document.getElementById("searchInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") doSearch();
+const BASE = "https://zefix.batil-kjekken.workers.dev";
+
+/* Helpers */
+function stat(msg){ document.getElementById("status").innerText = msg || ""; }
+function clear(){
+  document.getElementById("results").innerHTML="";
+  document.getElementById("company").classList.add("hidden");
+}
+
+async function api(path){
+  const r = await fetch(BASE + path);
+  if(!r.ok) throw new Error();
+  return r.json();
+}
+
+/* Search */
+async function doSearch(){
+  const q = document.getElementById("searchInput").value.trim();
+  if(!q) return;
+
+  clear();
+  stat("Searching...");
+
+  try {
+    if(q.startsWith("CHE")){
+      const d = await api("/company/uid/" + q.replace(/\D/g,""));
+      showCompany(d[0]);
+      return;
+    }
+
+    const list = await api("/search?q=" + encodeURIComponent(q));
+
+    if(list.length===1){
+      showFull(list[0]);
+      return;
+    }
+
+    showList(list);
+
+  } catch {
+    stat("Error");
+  }
+}
+
+/* Result list */
+function showList(list){
+  stat("");
+  const r = document.getElementById("results");
+
+  list.slice(0,10).forEach(c=>{
+    const el = document.createElement("li");
+    el.innerHTML =
+      `<div class="result-name">${c.name}</div>
+       <div class="result-sub">${c.uid} · EHRA ${c.ehraid}</div>`;
+    el.onclick = ()=> showFull(c);
+    r.appendChild(el);
   });
+}
 
-  const _urlSearch = new URLSearchParams(location.search).get("search");
-  if (_urlSearch) {
-    document.getElementById("searchInput").value = _urlSearch.replace(/^["']|["']$/g, "");
-    doSearch();
-  }
+/* Load full */
+async function showFull(c){
+  stat("Loading...");
+  const full = await api("/company/ehraid/" + c.ehraid);
+  stat("");
+  showCompany(full);
+}
 
-  function isUid(q) {
-    return /^CHE[-. ]?\d{3}[-. ]?\d{3}[-. ]?\d{3}$/i.test(q.trim()) || /^CHE\d{9}$/i.test(q.trim());
-  }
-  function normalizeUid(q) {
-    const digits = q.replace(/\D/g, "");
-    return "CHE" + digits;
-  }
-  function formatUidDisplay(uid) {
-    const s = String(uid || "").replace(/\D/g, "");
-    return s.length === 9 ? `CHE-${s.slice(0,3)}.${s.slice(3,6)}.${s.slice(6)}` : (uid || "–");
-  }
-  function isEhraid(q) { return /^\d{4,}$/.test(q.trim()); }
-  function setStatus(html) { document.getElementById("status").innerHTML = html || ""; }
+/* Render */
+function showCompany(c){
 
-  function clearResults() {
-    document.getElementById("resultsArea").innerHTML = "";
-    ["companyCard","registryCard","publicationsCard","relatedCard"].forEach(id =>
-      document.getElementById(id).classList.add("hidden")
-    );
-    ["companyCardBody","registryCardBody","publicationsCardBody","relatedCardBody"].forEach(id =>
-      document.getElementById(id).innerHTML = ""
-    );
-  }
+  const addr = c.address || {};
+  const zefix = c.zefixDetailWeb?.en || "";
+  const excerpt = c.cantonalExcerptWeb || "";
 
-  async function apiFetch(path, options = {}) {
-    const res = await fetch(BASE + path, { headers: { Accept: "application/json", ...(options.headers || {}) }, ...options });
-    let data = null;
-    try { data = await res.json(); } catch (_) { }
-    if (!res.ok) {
-      const msg = data?.error?.message || data?.message || `HTTP ${res.status}`;
-      throw Object.assign(new Error(msg), { status: res.status, data });
-    }
-    return data;
-  }
+  const html = `
+    ${row("Name", c.name)}
+    ${row("UID", c.uid)}
+    ${row("EHRA", c.ehraid)}
 
-  async function doSearch() {
-    const raw = document.getElementById("searchInput").value.trim();
-    if (!raw) return;
-    clearResults();
-    setStatus('<span class="spinner"></span> Searching…');
-    document.getElementById("searchBtn").disabled = true;
-    try {
-      if (isUid(raw)) {
-        await lookupByUid(normalizeUid(raw));
-      } else if (isEhraid(raw)) {
-        await lookupByEhraid(raw);
-      } else {
-        await searchByName(raw);
-      }
-    } catch (err) {
-      setStatus(`<div class="msg error">Error: ${esc(err.message)}</div>`);
-    } finally {
-      document.getElementById("searchBtn").disabled = false;
-    }
-  }
+    ${statusRow(c.status)}
 
-  async function lookupByUid(uid) {
-    let data;
-    try { data = await apiFetch(`/company/uid/${encodeURIComponent(uid)}`); }
-    catch (e) {
-      if (e.status === 404) { setStatus('<div class="msg warning">No company found with that UID.</div>'); return; }
-      throw e;
-    }
-    const c = Array.isArray(data) ? data[0] : data;
-    if (!c) { setStatus('<div class="msg warning">No company found with that UID.</div>'); return; }
-    setStatus("");
-    showCompany(c);
-  }
+    ${row("Legal form", c.legalForm?.name?.en)}
+    ${row("Seat", c.legalSeat)}
+    ${row("Canton", c.canton)}
 
-  async function lookupByEhraid(id) {
-    let c;
-    try { c = await apiFetch(`/company/ehraid/${encodeURIComponent(id)}`); }
-    catch (e) {
-      if (e.status === 404) { setStatus('<div class="msg warning">No company found with that EHRA-ID.</div>'); return; }
-      throw e;
-    }
-    setStatus("");
-    showCompany(c);
-  }
+    ${row("ZIP", addr.swissZipCode)}
+    ${row("City", addr.city)}
 
-  async function searchByName(name) {
-    const params = new URLSearchParams({
-      q: name,
-      activeOnly: document.getElementById("activeOnly").checked ? "true" : "false"
-    });
-    const canton = document.getElementById("cantonSelect").value;
-    if (canton) params.set("canton", canton);
+    ${multi("Address",
+      (addr.street||"") + " " + (addr.houseNumber||""),
+      (addr.swissZipCode||"") + " " + (addr.city||"")
+    )}
 
-    const items = await apiFetch(`/search?${params.toString()}`) || [];
-    if (!items.length) { setStatus('<div class="msg warning">No results found.</div>'); return; }
-    if (items.length === 1) { setStatus(""); await lookupByEhraid(items[0].ehraid); return; }
-    setStatus("");
-    showResultList(items);
-  }
+    <hr>
 
-  function showResultList(items) {
-    const area = document.getElementById("resultsArea");
-    let html = '<div class="card"><div class="card-header"><div class="card-icon red"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div><h2>Select company</h2></div>';
-    if (items.length >= 25) html += '<div class="msg info" style="margin:1rem 1.4rem 0">Many results may exist — please refine your search.</div>';
-    html += '<ul class="results-list">';
-    items.slice(0, 25).forEach((c, i) => {
-      const form = legalFormName(c.legalForm);
-      const seat = [c.legalSeat, c.canton].filter(Boolean).join(", ");
-      html += `<li onclick="selectCompany(${i})">
-        <span class="result-name">${esc(c.name)}</span>
-        <span class="result-sub">${esc(formatUidDisplay(c.uid))} · EHRA ${esc(c.ehraid)} · ${esc(statusText(c.status))}${form ? " · " + esc(form) : ""}${seat ? " · " + esc(seat) : ""}</span>
-      </li>`;
-    });
-    html += "</ul></div>";
-    area.innerHTML = html;
-    area._items = items;
-  }
+    ${row("Capital", (c.capitalNominal||"") + " " + (c.capitalCurrency||""))}
+    ${row("Purpose", c.purpose)}
 
-  async function selectCompany(idx) {
-    const items = document.getElementById("resultsArea")._items;
-    document.getElementById("resultsArea").innerHTML = "";
-    setStatus('<span class="spinner"></span> Loading…');
-    await lookupByEhraid(items[idx].ehraid);
-  }
+    <hr>
 
-  function showCompany(c) {
-    setStatus("");
-    const addr = c.address || {};
-    const streetLine = [addr.street, addr.houseNumber].filter(Boolean).join(" ");
-    const zipCityLine = [addr.swissZipCode, addr.city].filter(Boolean).join(" ");
-    const addressLine1 = [addr.organisation, addr.careOf, streetLine, addr.addon, addr.poBox].filter(Boolean).join(", ");
-    const addressLine2 = zipCityLine;
-    const zefixLink = zefixDetailLink(c);
-    const excerptLink = c.cantonalExcerptWeb || "";
+    ${link("Zefix", zefix, "link-zefix")}
+    ${link("Cantonal excerpt", excerpt, "link-canton")}
+  `;
 
-    document.getElementById("companyCard").classList.remove("hidden");
-    document.getElementById("companyCardBody").innerHTML =
-      fieldRow("Name", c.name || "–") +
-      fieldRowUid("UID", formatUidDisplay(c.uid), zefixLink) +
-      fieldRow("EHRA-ID", c.ehraid || "–") +
-      fieldRow("CH-ID", c.chid || "–") +
-      `<div class="field-row"><span class="field-label">Status</span><span class="field-value">${statusBadgeHtml(c.status)}</span></div>` +
-      fieldRow("Legal form", legalFormName(c.legalForm) || "–") +
-      fieldRow("Seat", c.legalSeat || "–") +
-      fieldRow("Canton", c.canton || "–") +
-      fieldRow("ZIP code", addr.swissZipCode || "–") +
-      fieldRow("City", addr.city || "–") +
-      fieldRowMultiline("Address", addressLine1 || "–", addressLine2) +
-      fieldRow("Capital", formatCapital(c)) +
-      fieldRow("Last SOGC date", formatDate(c.sogcDate)) +
-      fieldRow("Deleted", formatDate(c.deletionDate)) +
-      linkRow("Zefix page", zefixLink, "Zefix ↗", "link-zefix") +
-      linkRow("Cantonal excerpt", excerptLink, "Excerpt ↗", "link-canton");
+  document.getElementById("company").classList.remove("hidden");
+  document.getElementById("companyBody").innerHTML = html;
+}
 
-    renderRegistryCard(c);
-    renderPublications(c.sogcPub || []);
-    renderRelated(c);
-  }
+/* UI helpers */
 
-  function renderRegistryCard(c) {
-    let html = "";
-    if (c.purpose) html += fieldRowMultiline("Purpose", c.purpose, "");
-    if ((c.translation || []).length) html += fieldRowMultiline("Translations", c.translation.join("<br>"), "");
-    if ((c.oldNames || []).length) html += oldNamesHtml(c.oldNames);
-    if (!html) return;
-    document.getElementById("registryCard").classList.remove("hidden");
-    document.getElementById("registryCardBody").innerHTML = html;
-  }
+function row(l,v=""){
+  return `<div class="field-row">
+    <span class="field-label">${l}</span>
+    <span class="field-value">${v||"-"}</span>
+  </div>`;
+}
 
-  function renderPublications(items) {
-    if (!items.length) return;
-    document.getElementById("publicationsCard").classList.remove("hidden");
-    let html = `<table class="mini-table"><thead><tr>
-      <th style="width:115px">Date</th><th style="width:110px">SOGC ID</th><th>Message</th>
-    </tr></thead><tbody>`;
-    items.slice(0, 8).forEach(p => {
-      html += `<tr><td>${esc(formatDate(p.sogcDate))}</td><td>${esc(p.sogcId || "–")}</td><td>${esc(p.message || "–")}</td></tr>`;
-    });
-    html += `</tbody></table>`;
-    document.getElementById("publicationsCardBody").innerHTML = html;
-  }
+function multi(l,a,b){
+  return `<div class="field-row">
+    <span class="field-label">${l}</span>
+    <span class="field-value">${a}<br>${b}</span>
+  </div>`;
+}
 
-  function renderRelated(c) {
-    const groups = [
-      ["Head offices", c.headOffices],
-      ["Further head offices", c.furtherHeadOffices],
-      ["Branch offices", c.branchOffices],
-      ["Has taken over", c.hasTakenOver],
-      ["Was taken over by", c.wasTakenOverBy],
-      ["Audit companies", c.auditCompanies]
-    ].filter(([_, arr]) => Array.isArray(arr) && arr.length);
+function statusRow(s){
+  const map = {
+    ACTIVE:["Active","green"],
+    CANCELLED:["Deleted","red"],
+    BEING_CANCELLED:["Being deleted","yellow"]
+  };
+  const m = map[s]||[s,""];
+  return `<div class="field-row">
+    <span class="field-label">Status</span>
+    <span class="field-value"><span class="badge ${m[1]}">${m[0]}</span></span>
+  </div>`;
+}
 
-    if (!groups.length) return;
-    document.getElementById("relatedCard").classList.remove("hidden");
-    let html = "";
-    groups.forEach(([title, arr]) => {
-      html += `<div style="margin-bottom:1rem"><div class="section-title">${esc(title)}</div>`;
-      html += `<table class="mini-table"><tbody>`;
-      arr.forEach(x => {
-        html += `<tr>
-          <td><strong>${esc(x.name || "–")}</strong><div class="muted small">${esc(formatUidDisplay(x.uid))} · EHRA ${esc(x.ehraid || "–")} · ${esc(statusText(x.status))}</div></td>
-          <td style="width:74px"><button class="copy-btn" onclick="lookupByEhraid('${escAttr(x.ehraid)}')">Open</button></td>
-        </tr>`;
-      });
-      html += `</tbody></table></div>`;
-    });
-    document.getElementById("relatedCardBody").innerHTML = html;
-  }
+function link(label,url,cls){
+  if(!url) return row(label,"-");
+  return `<div class="field-row">
+    <span class="field-label">${label}</span>
+    <span class="field-value">${url}</span>
+    <a href="${url}" target="_blank" class="link-btn ${cls}">Open ↗</a>
+  </div>`;
+}
 
-  function oldNamesHtml(oldNames) {
-    let html = `<div class="field-row"><span class="field-label">Old names</span><span class="field-value"><table class="mini-table"><tbody>`;
-    oldNames.forEach(n => {
-      html += `<tr><td>${esc(n.name || "–")}</td><td class="muted small" style="width:80px">Seq. ${esc(n.sequenceNr || "–")}</td></tr>`;
-    });
-    html += `</tbody></table></span></div>`;
-    return html;
-  }
-
-  /* ── Helpers ── */
-  function formatDate(d) {
-    if (!d) return "–";
-    const [y, m, day] = String(d).split("-");
-    return day ? `${day}/${m}/${y}` : d;
-  }
-  function textLang(obj) { return obj?.en || obj?.de || obj?.fr || obj?.it || ""; }
-  function legalFormName(lf) {
-    if (!lf) return "";
-    const short = textLang(lf.shortName);
-    const full = textLang(lf.name);
-    return short && full && short !== full ? `${short} — ${full}` : (short || full);
-  }
-  function statusText(s) {
-    const map = { ACTIVE: "Active", CANCELLED: "Deleted", BEING_CANCELLED: "Being deleted" };
-    return map[s] || s || "–";
-  }
-  function statusBadgeHtml(status) {
-    const map = {
-      ACTIVE: ["Active", "badge-green"],
-      CANCELLED: ["Deleted", "badge-red"],
-      BEING_CANCELLED: ["Being deleted", "badge-yellow"]
-    };
-    const [label, cls] = map[status] || [status || "–", "badge-grey"];
-    return `<span class="badge ${cls}">${esc(label)}</span>`;
-  }
-  function formatCapital(c) { return [c.capitalNominal, c.capitalCurrency].filter(Boolean).join(" ") || "–"; }
-  function zefixDetailLink(c) {
-    const z = c.zefixDetailWeb;
-    return z?.en || z?.de || z?.fr || z?.it || "";
-  }
-
-  function fieldRow(label, value) {
-    const id = uid();
-    return `<div class="field-row">
-      <span class="field-label">${esc(label)}</span>
-      <span class="field-value" id="${id}">${esc(value)}</span>
-      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
-    </div>`;
-  }
-
-  function fieldRowUid(label, value, zefixUrl) {
-    const id = uid();
-    return `<div class="field-row">
-      <span class="field-label">${esc(label)}</span>
-      <span class="field-value" id="${id}">${esc(value)}</span>
-      ${zefixUrl ? `<a class="copy-btn" href="${escAttr(zefixUrl)}" target="_blank" rel="noopener" style="text-decoration:none">Zefix ↗</a>` : ""}
-      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
-    </div>`;
-  }
-
-  function fieldRowMultiline(label, line1, line2) {
-    const id = uid();
-    const display = [line1, line2].filter(Boolean).join("<br>");
-    const copyVal = [stripHtml(line1), stripHtml(line2)].filter(Boolean).join(", ");
-    return `<div class="field-row">
-      <span class="field-label">${esc(label)}</span>
-      <span class="field-value" id="${id}" data-copy="${escAttr(copyVal)}">${display || "–"}</span>
-      <button class="copy-btn" onclick="copyField('${id}',this)">Copy</button>
-    </div>`;
-  }
-
-  function linkRow(label, url, linkText, cls) {
-    if (!url) {
-      return `<div class="field-row"><span class="field-label">${esc(label)}</span><span class="field-value">–</span><button class="copy-btn disabled" disabled>Open</button></div>`;
-    }
-    return `<div class="field-row">
-      <span class="field-label">${esc(label)}</span>
-      <span class="field-value"><a href="${escAttr(url)}" target="_blank" rel="noopener">${esc(url)}</a></span>
-      <a class="search-link ${cls || "link-zefix"}" href="${escAttr(url)}" target="_blank" rel="noopener">${esc(linkText || "Open ↗")}</a>
-    </div>`;
-  }
-
-  function uid() { return "fr_" + Math.random().toString(36).slice(2); }
-  function copyField(id, btn) {
-    const el  = document.getElementById(id);
-    const val = el?.dataset.copy ?? el?.innerText ?? "";
-    navigator.clipboard.writeText(val).then(() => {
-      btn.textContent = "Copied!"; btn.classList.add("copied");
-      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1800);
-    }).catch(() => {
-      const ta = document.createElement("textarea");
-      ta.value = val; document.body.appendChild(ta); ta.select();
-      document.execCommand("copy"); document.body.removeChild(ta);
-      btn.textContent = "Copied!"; btn.classList.add("copied");
-      setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1800);
-    });
-  }
-  function stripHtml(str) {
-    const div = document.createElement("div");
-    div.innerHTML = String(str ?? "");
-    return div.innerText;
-  }
-  function esc(str) {
-    return String(str ?? "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function escAttr(str) { return esc(str).replace(/'/g,"&#39;"); }
 </script>
+
 </body>
 </html>
