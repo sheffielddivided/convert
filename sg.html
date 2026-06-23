@@ -31,11 +31,6 @@ button{
     padding:12px 18px;
 }
 
-#status{
-    margin-top:16px;
-    color:#666;
-}
-
 .card{
     border:1px solid #ddd;
     border-radius:8px;
@@ -43,14 +38,13 @@ button{
     margin-top:12px;
 }
 
-.name{
-    font-size:18px;
-    font-weight:600;
-}
-
 .small{
     color:#666;
-    margin-top:6px;
+    margin-top:4px;
+}
+
+#status{
+    margin-top:12px;
 }
 
 </style>
@@ -80,80 +74,55 @@ Search
 
 <script>
 
-const DATASET =
-"d_3f960c10fed6145404ca7b821f263b87";
-
-let resourceId =
-null;
-
-async function getResourceId(){
-
-if(resourceId){
-return resourceId;
-}
-
-const meta =
-await fetch(
-`https://data.gov.sg/api/action/package_show?id=${DATASET}`
-);
-
-const json =
-await meta.json();
-
-resourceId =
-json
-.result
-.resources[0]
-.id;
-
-return resourceId;
-
-}
+const RESOURCE_ID =
+"76724ea4261ebdddaeeddee70f9c64d9";
 
 async function searchCompanies(){
 
-const query =
+const q =
 document
 .getElementById("query")
 .value
-.trim()
-.toLowerCase();
+.trim();
 
-if(!query){
+if(!q){
 
 status.textContent =
-"Enter search text";
+"Enter company name";
 
 return;
 
 }
 
 status.textContent =
-"Searching...";
+"Searching…";
 
 results.innerHTML =
 "";
 
 try{
 
-const id =
-await getResourceId();
-
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
-`?resource_id=${id}`
+`?resource_id=${RESOURCE_ID}`
 +
 `&limit=50`
 +
-`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
-+
-`&q=${encodeURIComponent(query)}`;
+`&q=${encodeURIComponent(q)}`;
 
 const res =
 await fetch(
 url
 );
+
+if(!res.ok){
+
+throw new Error(
+`HTTP ${res.status}`
+);
+
+}
 
 const json =
 await res.json();
@@ -172,7 +141,7 @@ r.entity_name || ""
 )
 .toLowerCase()
 .includes(
-query
+q.toLowerCase()
 )
 )
 .slice(0,10);
@@ -192,7 +161,7 @@ err
 );
 
 status.textContent =
-"Search failed";
+err.message;
 
 }
 
@@ -214,54 +183,63 @@ return;
 
 }
 
-rows.forEach(row=>{
+for(
+const row
+of rows
+){
 
-const div =
+const card =
 document
 .createElement(
 "div"
 );
 
-div.className =
+card.className =
 "card";
 
-div.innerHTML =
+card.innerHTML =
 `
-<div class="name">
-${row.entity_name}
-</div>
+<h3>
+${row.entity_name || "-"}
+</h3>
 
 <div class="small">
 UEN:
-${row.uen}
+${row.uen || "-"}
 </div>
 
 <div class="small">
 Status:
-${row.uen_status_desc}
+${row.uen_status_desc || "-"}
 </div>
 
 <div class="small">
 Type:
-${row.entity_type_desc}
+${row.entity_type_desc || "-"}
 </div>
 `;
 
 results.appendChild(
-div
+card
 );
-
-});
 
 }
 
-searchBtn
+}
+
+document
+.getElementById(
+"searchBtn"
+)
 .addEventListener(
 "click",
 searchCompanies
 );
 
-query
+document
+.getElementById(
+"query"
+)
 .addEventListener(
 "keydown",
 e=>{
