@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
 
 <meta charset="utf-8">
@@ -10,41 +10,50 @@
 <style>
 
 body{
-    font-family:system-ui,sans-serif;
-    max-width:900px;
-    margin:40px auto;
-    padding:20px;
+font-family:system-ui;
+max-width:1000px;
+margin:40px auto;
+padding:20px;
 }
 
 .controls{
-    display:flex;
-    gap:10px;
+display:flex;
+gap:10px;
 }
 
 input{
-    flex:1;
-    padding:12px;
-    font-size:16px;
+flex:1;
+padding:12px;
 }
 
 button{
-    padding:12px 18px;
+padding:12px 18px;
 }
 
 .card{
-    border:1px solid #ddd;
-    border-radius:8px;
-    padding:14px;
-    margin-top:12px;
+border:1px solid #ddd;
+padding:14px;
+margin-top:12px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.card:hover{
+background:#fafafa;
+}
+
+.details{
+margin-top:10px;
+padding-top:10px;
+border-top:1px solid #eee;
+}
+
+.label{
+font-weight:600;
 }
 
 .small{
-    color:#666;
-    margin-top:4px;
-}
-
-#status{
-    margin-top:12px;
+color:#666;
 }
 
 </style>
@@ -77,68 +86,41 @@ Search
 const DATASET =
 "d_3f960c10fed6145404ca7b821f263b87";
 
+let current=[];
+
 async function searchCompanies(){
 
 const q =
-document
-.getElementById("query")
+query
 .value
 .trim();
 
 if(!q){
-
-status.textContent =
-"Enter search text";
-
 return;
-
 }
 
 status.textContent =
 "Searching...";
 
-results.innerHTML =
-"";
-
-try{
+results.innerHTML="";
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
 `?resource_id=${DATASET}`
 +
-`&limit=25`
+`&limit=50`
 +
-`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
-+
-`&q=${encodeURIComponent(
-JSON.stringify({
-entity_name:q
-})
-)}`;
+`&q=${encodeURIComponent(q)}`;
 
 const res =
 await fetch(url);
 
-if(!res.ok){
-
-throw new Error(
-`HTTP ${res.status}`
-);
-
-}
-
 const json =
 await res.json();
 
-let rows =
-json
-?.result
-?.records
-|| [];
-
-rows =
-rows
+current =
+(json.result.records||[])
 .filter(r=>
 (r.entity_name||"")
 .toLowerCase()
@@ -147,90 +129,170 @@ q.toLowerCase()
 ))
 .slice(0,10);
 
-render(rows);
+render();
 
 status.textContent =
-`${rows.length} result(s)`;
-
-}
-catch(err){
-
-console.error(err);
-
-status.textContent =
-err.message;
+`${current.length} results`;
 
 }
 
-}
-
-function render(rows){
+function render(){
 
 results.innerHTML="";
 
-if(!rows.length){
+current.forEach((row,i)=>{
 
-results.innerHTML =
-"<p>No results</p>";
-
-return;
-
-}
-
-rows.forEach(row=>{
-
-const div =
+const card =
 document.createElement(
 "div"
 );
 
-div.className =
+card.className =
 "card";
 
-div.innerHTML =
+card.innerHTML=
 `
-<h3>
-${row.entity_name || "-"}
-</h3>
+<div>
+<b>
+${row.entity_name}
+</b>
+</div>
 
 <div class="small">
 UEN:
-${row.uen || "-"}
+${row.uen}
 </div>
 
 <div class="small">
-Status:
-${row.uen_status_desc || "-"}
+${row.entity_type_desc||""}
 </div>
 
-<div class="small">
-Type:
-${row.entity_type_desc || "-"}
+<div
+id="detail-${i}">
 </div>
 `;
 
+card.onclick=
+()=>loadDetails(
+row.uen,
+i
+);
+
 results.appendChild(
-div
+card
 );
 
 });
 
 }
 
-document
-.getElementById(
-"searchBtn"
-)
-.addEventListener(
-"click",
-searchCompanies
+async function loadDetails(
+uen,
+index
+){
+
+const target =
+document.getElementById(
+`detail-${index}`
 );
 
-document
-.getElementById(
-"query"
-)
-.addEventListener(
+target.innerHTML =
+"Loading details...";
+
+const url =
+`https://data.gov.sg/api/action/datastore_search`
++
+`?resource_id=${DATASET}`
++
+`&filters=`
++
+encodeURIComponent(
+JSON.stringify({
+uen:uen
+})
+);
+
+const res =
+await fetch(url);
+
+const json =
+await res.json();
+
+const row =
+json
+?.result
+?.records?.[0];
+
+if(!row){
+
+target.innerHTML =
+"No details";
+
+return;
+
+}
+
+target.innerHTML =
+`
+<div class="details">
+
+<div>
+<span class="label">
+Company:
+</span>
+
+${row.entity_name||"-"}
+</div>
+
+<div>
+<span class="label">
+UEN:
+</span>
+
+${row.uen||"-"}
+</div>
+
+<div>
+<span class="label">
+Status:
+</span>
+
+${row.uen_status_desc||"-"}
+</div>
+
+<div>
+<span class="label">
+Entity Type:
+</span>
+
+${row.entity_type_desc||"-"}
+</div>
+
+<div>
+<span class="label">
+Registration Date:
+</span>
+
+${row.registration_incorporation_date||"-"}
+</div>
+
+<div>
+<span class="label">
+Address:
+</span>
+
+${row.primary_ssic_description||"-"}
+</div>
+
+</div>
+`;
+
+}
+
+searchBtn.onclick =
+searchCompanies;
+
+query.addEventListener(
 "keydown",
 e=>{
 
@@ -247,5 +309,4 @@ searchCompanies();
 </script>
 
 </body>
-
 </html>
