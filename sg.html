@@ -227,15 +227,19 @@
     cursor: text;
   }
 
-  .detail-field .field-value[draggable="true"] {
+  .drag-handle {
+    flex-shrink: 0;
     cursor: grab;
-    border-bottom: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: .85rem;
+    padding: 0 2px;
+    opacity: .5;
+    transition: opacity .12s;
+    user-select: none;
   }
 
-  .detail-field .field-value[draggable="true"]:active {
-    cursor: grabbing;
-    opacity: .7;
-  }
+  .drag-handle:hover  { opacity: 1; }
+  .drag-handle:active { cursor: grabbing; }
 
   .copy-btn {
     flex-shrink: 0;
@@ -549,16 +553,19 @@ function formatRecord(row) {
    FIELD ROW HELPER
 ────────────────────────────────────────── */
 function fieldRow(label, value, withCopy) {
+  const v = String(value);
+  const safeV = JSON.stringify(v);
   const copyBtn = withCopy
-    ? `<button class="copy-btn" onclick="copyField(this, ${JSON.stringify(String(value))})">Copy</button>`
+    ? `<button class="copy-btn" onclick="copyField(this, ${safeV})">Copy</button>`
     : "";
-  const draggable = withCopy
-    ? `draggable="true" ondragstart="event.dataTransfer.setData('text/plain', ${JSON.stringify(String(value))})" title="Drag to copy"`
+  const dragHandle = withCopy
+    ? `<span class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${safeV})" title="Drag value">⠿</span>`
     : "";
   return `
     <div class="detail-field">
       <label>${escHtml(label)}</label>
-      <span class="field-value" ${draggable}>${escHtml(String(value))}</span>
+      <span class="field-value">${escHtml(v)}</span>
+      ${dragHandle}
       ${copyBtn}
     </div>`;
 }
@@ -708,17 +715,40 @@ function setStatus(msg, isError = false) {
 }
 
 /* ──────────────────────────────────────────
+   DRAG HELPER
+────────────────────────────────────────── */
+function onDragStart(event, text) {
+  event.dataTransfer.effectAllowed = "copy";
+  event.dataTransfer.setData("text/plain", text);
+  event.dataTransfer.setData("text/html", text);
+}
+
+/* ──────────────────────────────────────────
    COPY HELPER
 ────────────────────────────────────────── */
 function copyField(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
+  function markCopied() {
     btn.textContent = "Copied!";
     btn.classList.add("copied");
     setTimeout(() => {
       btn.textContent = "Copy";
       btn.classList.remove("copied");
     }, 1500);
-  });
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(markCopied);
+  } else {
+    // Fallback for file:// or non-HTTPS
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    markCopied();
+  }
 }
 
 /* ──────────────────────────────────────────
