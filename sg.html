@@ -1,64 +1,3 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Singapore Company Search</title>
-
-<style>
-body{
-  font-family:system-ui;
-  max-width:900px;
-  margin:40px auto;
-}
-
-input{
-  width:350px;
-  padding:10px;
-}
-
-button{
-  padding:10px;
-}
-
-.card{
-  border:1px solid #ddd;
-  border-radius:8px;
-  padding:12px;
-  margin-top:10px;
-}
-</style>
-
-</head>
-
-<body>
-
-<h1>Singapore Company Search</h1>
-
-<input
-id="query"
-placeholder="Search company"
-/>
-
-<button id="btn">
-Search
-</button>
-
-<p id="status"></p>
-
-<div id="results"></div>
-
-<script>
-
-const DATASET =
-"d_3f960c10fed6145404ca7b821f263b87";
-
-document
-.getElementById("btn")
-.addEventListener(
-"click",
-searchCompanies
-);
-
 async function searchCompanies(){
 
 const q =
@@ -67,14 +6,10 @@ document
 .value
 .trim();
 
-if(!q){
-status.textContent =
-"Enter search text";
-return;
-}
+if(!q) return;
 
 status.textContent =
-"Searching…";
+"Searching...";
 
 results.innerHTML =
 "";
@@ -82,37 +17,75 @@ results.innerHTML =
 try{
 
 const url =
+`https://data.gov.sg/api/action/package_show?id=d_3f960c10fed6145404ca7b821f263b87`;
+
+const meta =
+await fetch(url)
+.then(r=>r.json());
+
+const resource =
+meta
+.result
+.resources[0]
+.id;
+
+const searchUrl =
 `https://data.gov.sg/api/action/datastore_search`
 +
-`?resource_id=${DATASET}`
+`?resource_id=${resource}`
 +
 `&limit=10`
 +
-`&q=${encodeURIComponent(q)}`;
+`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
++
+`&filters=` +
+encodeURIComponent(
+JSON.stringify({
+entity_name:q
+})
+);
 
 const res =
-await fetch(url);
+await fetch(
+searchUrl
+);
 
 const json =
 await res.json();
 
-console.log(json);
-
 const rows =
-json?.result?.records
+json
+.result
+.records
 || [];
 
-status.textContent =
-`${rows.length} result(s)`;
+render(
+rows
+);
 
-for(
-const row
-of rows
-){
+status.textContent =
+`${rows.length} results`;
+
+}
+catch(e){
+
+console.error(e);
+
+status.textContent =
+"Search failed";
+
+}
+
+}
+
+function render(rows){
+
+results.innerHTML="";
+
+rows.forEach(row=>{
 
 const div =
-document
-.createElement(
+document.createElement(
 "div"
 );
 
@@ -122,47 +95,28 @@ div.className =
 div.innerHTML =
 `
 <strong>
-${row.entity_name ?? "-"}
+${row.entity_name}
 </strong>
 
 <div>
 UEN:
-${row.uen ?? "-"}
+${row.uen}
 </div>
 
 <div>
 Status:
-${row.uen_status_desc ?? "-"}
+${row.uen_status_desc}
 </div>
 
 <div>
 Type:
-${row.entity_type_desc ?? "-"}
+${row.entity_type_desc}
 </div>
-
 `;
 
 results.appendChild(
-div
-);
+div);
+
+});
 
 }
-
-}
-catch(err){
-
-console.error(
-err
-);
-
-status.textContent =
-"Request failed";
-
-}
-
-}
-
-</script>
-
-</body>
-</html>
