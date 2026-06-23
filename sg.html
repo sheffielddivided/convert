@@ -349,27 +349,17 @@ document.getElementById(
 `detail-${index}`
 );
 
-if(
-!target
-){
-return;
-}
+if(!target) return;
 
-if(
-target.dataset.loaded
-){
-return;
-}
+if(target.dataset.loaded) return;
 
 target.innerHTML =
 "Loading details...";
 
+try{
+
 const first =
-(
-entityName
-||
-""
-)
+(entityName || "")
 .trim()
 .charAt(0)
 .toUpperCase();
@@ -384,11 +374,7 @@ const dataset = DATASETS[bucket];
 if(!dataset){
 
 target.innerHTML =
-`
-Missing dataset id
-for bucket:
-${bucket}
-`;
+`Missing dataset id for bucket: ${bucket}`;
 
 return;
 
@@ -396,117 +382,63 @@ return;
 
 const filters =
 encodeURIComponent(
-JSON.stringify({
-uen
-})
+JSON.stringify({ uen })
 );
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
-+
-`?resource_id=${dataset}`
-+
-`&limit=1`
-+
-`&filters=${filters}`;
++ `?resource_id=${dataset}`
++ `&limit=1`
++ `&filters=${filters}`;
 
 const res =
-await fetch(
-url
-);
+await fetch(url);
+
+if(!res.ok){
+throw new Error(`HTTP ${res.status}`);
+}
 
 const json =
 await res.json();
 
 const row =
-json
-?.result
-?.records?.[0];
+json?.result?.records?.[0];
 
 if(!row){
-
-target.innerHTML =
-"No detailed record";
-
+target.innerHTML = "No detailed record";
 return;
-
 }
 
-target.dataset.loaded =
-"1";
+target.dataset.loaded = "1";
 
 const ignore =
-new Set([
-"_id"
-]);
+new Set(["_id"]);
 
 const html =
-Object
-.entries(row)
-
-.filter(
-([k])=>
-!ignore.has(k)
-)
-
-.map(
-([k,v])=>{
+Object.entries(row)
+.filter(([k]) => !ignore.has(k))
+.map(([k,v]) => {
 
 const label =
-k
-.replaceAll(
-"_",
-" "
-)
-.replace(
-/\b\w/g,
-m=>
-m.toUpperCase()
-);
+k.replaceAll("_"," ")
+ .replace(/\b\w/g, m => m.toUpperCase());
 
 return `
-<div
-style="
-margin-bottom:10px;
-">
-
-<div
-style="
-font-weight:600;
-">
-${label}
-</div>
-
-<div>
-${
-v ??
-"-"
-}
-</div>
-
+<div style="margin-bottom:10px;">
+  <div style="font-weight:600;">${label}</div>
+  <div>${v ?? "-"}</div>
 </div>
 `;
 
-})
-
-.join("");
+}).join("");
 
 target.innerHTML =
-`
-<div
-class="details">
-
-${html}
-
-</div>
-`;
+`<div class="details">${html}</div>`;
 
 }
 catch(err){
 
-console.error(
-err
-);
+console.error(err);
 
 target.innerHTML =
 "Failed loading details";
