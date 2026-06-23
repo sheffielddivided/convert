@@ -185,26 +185,66 @@
 
   .card.open .detail-panel { display: block; }
 
-  .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px 24px;
+  /* ── Detail layout: single column, label inline ── */
+  .detail-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-status {
+    font-weight: 700;
+    font-size: .95rem;
+    margin-bottom: 12px;
+  }
+
+  .detail-status.live  { color: #16a34a; }
+  .detail-status.other { color: var(--accent); }
+
+  .detail-field {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 0;
   }
 
   .detail-field label {
-    display: block;
-    font-size: .75rem;
+    flex: 0 0 150px;
+    font-size: .78rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .06em;
+    letter-spacing: .05em;
     color: var(--muted);
-    margin-bottom: 2px;
+    white-space: nowrap;
   }
 
-  .detail-field p {
-    margin: 0;
+  .detail-field .field-value {
+    flex: 1;
     font-size: .9rem;
     word-break: break-word;
+    user-select: text;
+    cursor: text;
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 8px;
+    font-size: .72rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    line-height: 1.6;
+  }
+
+  .copy-btn:hover  { background: var(--bg); color: var(--text); }
+  .copy-btn.copied { color: #16a34a; border-color: #16a34a; }
+
+  .detail-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0;
   }
 
   /* ── Loading skeleton ── */
@@ -484,14 +524,32 @@ function formatRecord(row) {
     }
   }
 
-  // Insert address as a named field
+  // Insert address and expose postal as internal field
   if (addressStr.trim() !== "Singapore") {
     out["address"] = addressStr;
+  }
+  if (postal) {
+    out["_postal"] = postal;
   }
 
   return out;
 }
 
+
+/* ──────────────────────────────────────────
+   FIELD ROW HELPER
+────────────────────────────────────────── */
+function fieldRow(label, value, withCopy) {
+  const copyBtn = withCopy
+    ? `<button class="copy-btn" onclick="copyField(this, ${JSON.stringify(String(value))})">Copy</button>`
+    : "";
+  return `
+    <div class="detail-field">
+      <label>${escHtml(label)}</label>
+      <span class="field-value">${escHtml(String(value))}</span>
+      ${copyBtn}
+    </div>`;
+}
 
 async function loadDetails(uen, entityName, panel) {
   panel.innerHTML = `
@@ -521,22 +579,46 @@ async function loadDetails(uen, entityName, panel) {
 
     const formatted = formatRecord(row);
 
-    const fields = Object.entries(formatted)
-      .filter(([k]) => k !== "_id")
-      .filter(([, v]) => {
-        if (v === null || v === undefined || v === "") return false;
-        // Filter out fields whose value is literally "na" (case-insensitive)
-        if (String(v).trim().toLowerCase() === "na") return false;
-        return true;
-      })
-      .map(([k, v]) => `
-        <div class="detail-field">
-          <label>${escHtml(humanLabel(k))}</label>
-          <p>${escHtml(v)}</p>
-        </div>
-      `).join("");
+    const notNA = (v) => v !== null && v !== undefined && v !== "" && String(v).trim().toLowerCase() !== "na";
 
-    panel.innerHTML = `<div class="detail-grid">${fields}</div>`;
+    // ── Status badge (top, no label) ──
+    const statusVal = row.entity_status_description ?? row.uen_status_desc ?? "";
+    const isLive    = statusVal.toLowerCase().includes("live");
+    const statusHtml = notNA(statusVal)
+      ? `<div class="detail-status ${isLive ? "live" : "other"}">${escHtml(statusVal)}</div>`
+      : "";
+
+    // ── Key fields (with copy buttons) ──
+    const postal = formatted._postal ?? "";
+    const keyFields = [
+      { label: "UEN",          value: row.uen               ?? "" },
+      { label: "Entity Name",  value: row.entity_name        ?? "" },
+      { label: "Address",      value: formatted.address      ?? "" },
+      { label: "Postal Code",  value: postal                       },
+      { label: "City",         value: "Singapore"                  },
+    ].filter(f => notNA(f.value));
+
+    const keyHtml = keyFields.map(f => fieldRow(f.label, f.value, true)).join("");
+
+    // ── Skip fields shown above or consumed into address ──
+    const skipKeys = new Set([
+      "_id", "uen", "entity_name", "address", "_postal",
+      "entity_status_description", "uen_status_desc",
+      "entity_status_desc"
+    ]);
+
+    const restHtml = Object.entries(formatted)
+      .filter(([k]) => !skipKeys.has(k))
+      .filter(([, v]) => notNA(v))
+      .map(([k, v]) => fieldRow(humanLabel(k), v, false))
+      .join("");
+
+    panel.innerHTML = `
+      <div class="detail-list">
+        ${statusHtml}
+        ${keyHtml}
+        ${restHtml ? `<hr class="detail-divider">${restHtml}` : ""}
+      </div>`;
 
   } catch (err) {
     console.error(err);
@@ -611,6 +693,20 @@ function escHtml(str) {
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg;
   statusEl.className = isError ? "error" : "";
+}
+
+/* ──────────────────────────────────────────
+   COPY HELPER
+────────────────────────────────────────── */
+function copyField(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "Copy";
+      btn.classList.remove("copied");
+    }, 1500);
+  });
 }
 
 /* ──────────────────────────────────────────
