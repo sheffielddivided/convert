@@ -370,7 +370,7 @@ entityName
 ||
 ""
 )
-trim()
+.trim()
 .charAt(0)
 .toUpperCase();
 
@@ -379,48 +379,7 @@ const bucket =
 ? first
 : "others";
 
-/*
-FYLL INN dataset-ID-er her.
-Begynn med bokstavene du trenger.
-Eksempel:
-A:"d_xxxxx",
-B:"d_xxxxx"
-*/
-
-const DATASETS = {
-
-A:"",
-B:"",
-C:"",
-D:"",
-E:"",
-F:"",
-G:"",
-H:"",
-I:"",
-J:"",
-K:"",
-L:"",
-M:"",
-N:"",
-O:"",
-P:"",
-Q:"",
-R:"",
-S:"",
-T:"",
-U:"",
-V:"",
-W:"",
-X:"",
-Y:"",
-Z:"",
-others:""
-
-};
-
-const dataset =
-DATASETS[bucket];
+const dataset = DATASETS[bucket];
 
 if(!dataset){
 
