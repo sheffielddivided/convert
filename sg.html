@@ -225,6 +225,16 @@
     cursor: text;
   }
 
+  .detail-field .field-value[draggable="true"] {
+    cursor: grab;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .detail-field .field-value[draggable="true"]:active {
+    cursor: grabbing;
+    opacity: .7;
+  }
+
   .copy-btn {
     flex-shrink: 0;
     background: none;
@@ -543,10 +553,13 @@ function fieldRow(label, value, withCopy) {
   const copyBtn = withCopy
     ? `<button class="copy-btn" onclick="copyField(this, ${JSON.stringify(String(value))})">Copy</button>`
     : "";
+  const draggable = withCopy
+    ? `draggable="true" ondragstart="event.dataTransfer.setData('text/plain', ${JSON.stringify(String(value))})" title="Drag to copy"`
+    : "";
   return `
     <div class="detail-field">
       <label>${escHtml(label)}</label>
-      <span class="field-value">${escHtml(String(value))}</span>
+      <span class="field-value" ${draggable}>${escHtml(String(value))}</span>
       ${copyBtn}
     </div>`;
 }
