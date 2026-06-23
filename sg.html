@@ -1,5 +1,6 @@
 <!doctype html>
-<html>
+<html lang="en">
+
 <head>
 
 <meta charset="utf-8">
@@ -10,50 +11,56 @@
 <style>
 
 body{
-font-family:system-ui;
-max-width:1000px;
-margin:40px auto;
-padding:20px;
+    font-family:system-ui,sans-serif;
+    max-width:1000px;
+    margin:40px auto;
+    padding:20px;
 }
 
 .controls{
-display:flex;
-gap:10px;
+    display:flex;
+    gap:10px;
 }
 
 input{
-flex:1;
-padding:12px;
+    flex:1;
+    padding:12px;
+    font-size:16px;
 }
 
 button{
-padding:12px 18px;
+    padding:12px 18px;
+}
+
+#status{
+    margin-top:12px;
+    color:#666;
 }
 
 .card{
-border:1px solid #ddd;
-padding:14px;
-margin-top:12px;
-border-radius:8px;
-cursor:pointer;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:14px;
+    margin-top:12px;
+    cursor:pointer;
 }
 
 .card:hover{
-background:#fafafa;
+    background:#fafafa;
 }
 
 .details{
-margin-top:10px;
-padding-top:10px;
-border-top:1px solid #eee;
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px solid #eee;
 }
 
 .label{
-font-weight:600;
+    font-weight:600;
 }
 
 .small{
-color:#666;
+    color:#666;
 }
 
 </style>
@@ -68,7 +75,7 @@ color:#666;
 
 <input
 id="query"
-placeholder="Search company"
+placeholder="Search company name"
 />
 
 <button id="searchBtn">
@@ -90,41 +97,52 @@ let current=[];
 
 async function searchCompanies(){
 
-const raw =
-query
+const q =
+document
+.getElementById("query")
 .value
 .trim();
 
-if(!raw){
+if(!q){
 return;
 }
 
 status.textContent =
 "Searching...";
 
-results.innerHTML="";
+results.innerHTML =
+"";
 
 try{
 
-const normalized =
-raw
-.toLowerCase();
-
-const firstWord =
-raw
-.split(/\s+/)[0];
+const search =
+encodeURIComponent(
+JSON.stringify({
+entity_name:q
+})
+);
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
 `?resource_id=${DATASET}`
 +
-`&limit=100`
+`&limit=50`
 +
-`&q=${encodeURIComponent(firstWord)}`;
+`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
++
+`&q=${search}`;
 
 const res =
 await fetch(url);
+
+if(!res.ok){
+
+throw new Error(
+`HTTP ${res.status}`
+);
+
+}
 
 const json =
 await res.json();
@@ -137,23 +155,17 @@ json
 
 rows =
 rows
-.filter(r=>{
-
-const name =
+.filter(r=>
 (
 r.entity_name
 ||
 ""
 )
-.toLowerCase();
-
-return (
-name.includes(
-normalized
+.toLowerCase()
+.includes(
+q.toLowerCase()
 )
-);
-
-})
+)
 
 .sort((a,b)=>{
 
@@ -165,28 +177,28 @@ const B =
 b.entity_name
 .toLowerCase();
 
-const aStarts =
-A.startsWith(
-normalized
-);
-
-const bStarts =
-B.startsWith(
-normalized
-);
+const qn =
+q.toLowerCase();
 
 if(
-aStarts &&
-!bStarts
-) return -1;
+A.startsWith(qn)
+&&
+!B.startsWith(qn)
+){
+return -1;
+}
 
 if(
-!aStarts &&
-bStarts
-) return 1;
+!A.startsWith(qn)
+&&
+B.startsWith(qn)
+){
+return 1;
+}
 
 return (
-A.length -
+A.length
+-
 B.length
 );
 
@@ -215,21 +227,35 @@ status.textContent =
 }
 
 }
+
 function render(){
 
-results.innerHTML="";
+results.innerHTML =
+"";
 
-current.forEach((row,i)=>{
+if(
+!current.length
+){
 
-const card =
+results.innerHTML =
+"<p>No results</p>";
+
+return;
+
+}
+
+current.forEach(
+(row,index)=>{
+
+const div =
 document.createElement(
 "div"
 );
 
-card.className =
+div.className =
 "card";
 
-card.innerHTML=
+div.innerHTML =
 `
 <div>
 <b>
@@ -243,22 +269,22 @@ ${row.uen}
 </div>
 
 <div class="small">
-${row.entity_type_desc||""}
+${row.entity_type_desc||"-"}
 </div>
 
 <div
-id="detail-${i}">
+id="detail-${index}">
 </div>
 `;
 
-card.onclick=
+div.onclick =
 ()=>loadDetails(
 row.uen,
-i
+index
 );
 
 results.appendChild(
-card
+div
 );
 
 });
@@ -271,28 +297,34 @@ index
 ){
 
 const target =
-document.getElementById(
+document
+.getElementById(
 `detail-${index}`
 );
 
 target.innerHTML =
 "Loading details...";
 
+try{
+
+const filters =
+encodeURIComponent(
+JSON.stringify({
+uen
+})
+);
+
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
 `?resource_id=${DATASET}`
 +
-`&filters=`
-+
-encodeURIComponent(
-JSON.stringify({
-uen:uen
-})
-);
+`&filters=${filters}`;
 
 const res =
-await fetch(url);
+await fetch(
+url
+);
 
 const json =
 await res.json();
@@ -317,7 +349,7 @@ target.innerHTML =
 
 <div>
 <span class="label">
-Company:
+Name:
 </span>
 
 ${row.entity_name||"-"}
@@ -349,7 +381,7 @@ ${row.entity_type_desc||"-"}
 
 <div>
 <span class="label">
-Registration Date:
+Registration:
 </span>
 
 ${row.registration_incorporation_date||"-"}
@@ -357,7 +389,7 @@ ${row.registration_incorporation_date||"-"}
 
 <div>
 <span class="label">
-Address:
+Primary SSIC:
 </span>
 
 ${row.primary_ssic_description||"-"}
@@ -367,11 +399,23 @@ ${row.primary_ssic_description||"-"}
 `;
 
 }
+catch{
 
-searchBtn.onclick =
-searchCompanies;
+target.innerHTML =
+"Failed to load details";
 
-query.addEventListener(
+}
+
+}
+
+searchBtn
+.addEventListener(
+"click",
+searchCompanies
+);
+
+query
+.addEventListener(
 "keydown",
 e=>{
 
@@ -388,4 +432,5 @@ searchCompanies();
 </script>
 
 </body>
+
 </html>
