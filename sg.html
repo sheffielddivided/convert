@@ -90,12 +90,12 @@ let current=[];
 
 async function searchCompanies(){
 
-const q =
+const raw =
 query
 .value
 .trim();
 
-if(!q){
+if(!raw){
 return;
 }
 
@@ -104,14 +104,24 @@ status.textContent =
 
 results.innerHTML="";
 
+try{
+
+const normalized =
+raw
+.toLowerCase();
+
+const firstWord =
+raw
+.split(/\s+/)[0];
+
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
 `?resource_id=${DATASET}`
 +
-`&limit=50`
+`&limit=100`
 +
-`&q=${encodeURIComponent(q)}`;
+`&q=${encodeURIComponent(firstWord)}`;
 
 const res =
 await fetch(url);
@@ -119,23 +129,92 @@ await fetch(url);
 const json =
 await res.json();
 
-current =
-(json.result.records||[])
-.filter(r=>
-(r.entity_name||"")
-.toLowerCase()
-.includes(
-q.toLowerCase()
-))
+let rows =
+json
+?.result
+?.records
+|| [];
+
+rows =
+rows
+.filter(r=>{
+
+const name =
+(
+r.entity_name
+||
+""
+)
+.toLowerCase();
+
+return (
+name.includes(
+normalized
+)
+);
+
+})
+
+.sort((a,b)=>{
+
+const A =
+a.entity_name
+.toLowerCase();
+
+const B =
+b.entity_name
+.toLowerCase();
+
+const aStarts =
+A.startsWith(
+normalized
+);
+
+const bStarts =
+B.startsWith(
+normalized
+);
+
+if(
+aStarts &&
+!bStarts
+) return -1;
+
+if(
+!aStarts &&
+bStarts
+) return 1;
+
+return (
+A.length -
+B.length
+);
+
+})
+
 .slice(0,10);
+
+current =
+rows;
 
 render();
 
 status.textContent =
-`${current.length} results`;
+`${rows.length} results`;
+
+}
+catch(err){
+
+console.error(
+err
+);
+
+status.textContent =
+"Search failed";
 
 }
 
+}
 function render(){
 
 results.innerHTML="";
