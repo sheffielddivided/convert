@@ -308,7 +308,7 @@ return;
 }
 
 target.innerHTML =
-"Loading details...";
+"Loading...";
 
 try{
 
@@ -331,10 +331,6 @@ const url =
 const res =
 await fetch(url);
 
-if(!res.ok){
-throw new Error();
-}
-
 const json =
 await res.json();
 
@@ -356,13 +352,15 @@ target.dataset.loaded =
 "1";
 
 function show(v){
+
 return (
-v !== null &&
-v !== undefined &&
-v !== ""
+v &&
+String(v)
+.trim()
 )
 ? v
 : "-";
+
 }
 
 target.innerHTML =
@@ -383,6 +381,7 @@ row.entity_name
 <span class="label">
 UEN:
 </span>
+
 ${show(
 row.uen
 )}
@@ -390,8 +389,19 @@ row.uen
 
 <div>
 <span class="label">
+Agency:
+</span>
+
+${show(
+row.issuance_agency_desc
+)}
+</div>
+
+<div>
+<span class="label">
 Status:
 </span>
+
 ${show(
 row.uen_status_desc
 )}
@@ -399,8 +409,9 @@ row.uen_status_desc
 
 <div>
 <span class="label">
-Entity type:
+Entity Type:
 </span>
+
 ${show(
 row.entity_type_desc
 )}
@@ -408,83 +419,31 @@ row.entity_type_desc
 
 <div>
 <span class="label">
-Registration date:
+Registration Date:
 </span>
+
 ${show(
-row.registration_incorporation_date
+row.uen_issue_date
 )}
 </div>
 
 <div>
 <span class="label">
-Address:
+Registered Address:
 </span>
-<br>
-${show(
-row.block
-)}
- ${show(
-row.street_name
-)}
-<br>
-${show(
-row.level_no
-)}-${show(
-row.unit_no
-)}
-<br>
-${show(
-row.building_name
-)}
-<br>
-Singapore ${show(
-row.postal_code
-)}
-</div>
 
-<br>
-
-<div>
-<span class="label">
-Primary SSIC:
-</span>
 ${show(
-row.primary_ssic_code
-)}
-—
-${show(
-row.primary_ssic_description
+row.reg_street_name
 )}
 </div>
 
 <div>
 <span class="label">
-Secondary SSIC:
+Postal Code:
 </span>
-${show(
-row.secondary_ssic_code
-)}
-—
-${show(
-row.secondary_ssic_description
-)}
-</div>
 
-<div>
-<span class="label">
-Entity category:
-</span>
 ${show(
-row.entity_category
-)}
-</div>
-
-<div>
-<span class="label">
-Former entity name:
-</span>
-${show(
-row.former_entity_name
+row.reg_postal_code
 )}
 </div>
 
@@ -499,11 +458,12 @@ err
 );
 
 target.innerHTML =
-"Failed loading details";
+"Failed to load details";
 
 }
 
 }
+
 searchBtn
 .addEventListener(
 "click",
