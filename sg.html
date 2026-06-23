@@ -774,6 +774,13 @@ searchBtn.addEventListener("click", searchCompanies);
 queryEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") searchCompanies();
 });
+
+// URL param: ?q=searchterm  →  run search on load
+const urlQ = new URLSearchParams(window.location.search).get("q");
+if (urlQ) {
+  queryEl.value = urlQ;
+  searchCompanies();
+}
 </script>
 
 </body>
