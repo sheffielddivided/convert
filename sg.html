@@ -297,10 +297,15 @@ index
 ){
 
 const target =
-document
-.getElementById(
+document.getElementById(
 `detail-${index}`
 );
+
+if(
+target.dataset.loaded
+){
+return;
+}
 
 target.innerHTML =
 "Loading details...";
@@ -319,12 +324,16 @@ const url =
 +
 `?resource_id=${DATASET}`
 +
+`&limit=1`
++
 `&filters=${filters}`;
 
 const res =
-await fetch(
-url
-);
+await fetch(url);
+
+if(!res.ok){
+throw new Error();
+}
 
 const json =
 await res.json();
@@ -343,71 +352,158 @@ return;
 
 }
 
+target.dataset.loaded =
+"1";
+
+function show(v){
+return (
+v !== null &&
+v !== undefined &&
+v !== ""
+)
+? v
+: "-";
+}
+
 target.innerHTML =
 `
 <div class="details">
 
 <div>
-<span class="label">
-Name:
-</span>
-
-${row.entity_name||"-"}
+<b>
+${show(
+row.entity_name
+)}
+</b>
 </div>
+
+<br>
 
 <div>
 <span class="label">
 UEN:
 </span>
-
-${row.uen||"-"}
+${show(
+row.uen
+)}
 </div>
 
 <div>
 <span class="label">
 Status:
 </span>
-
-${row.uen_status_desc||"-"}
+${show(
+row.uen_status_desc
+)}
 </div>
 
 <div>
 <span class="label">
-Entity Type:
+Entity type:
 </span>
-
-${row.entity_type_desc||"-"}
+${show(
+row.entity_type_desc
+)}
 </div>
 
 <div>
 <span class="label">
-Registration:
+Registration date:
 </span>
-
-${row.registration_incorporation_date||"-"}
+${show(
+row.registration_incorporation_date
+)}
 </div>
+
+<div>
+<span class="label">
+Address:
+</span>
+<br>
+${show(
+row.block
+)}
+ ${show(
+row.street_name
+)}
+<br>
+${show(
+row.level_no
+)}-${show(
+row.unit_no
+)}
+<br>
+${show(
+row.building_name
+)}
+<br>
+Singapore ${show(
+row.postal_code
+)}
+</div>
+
+<br>
 
 <div>
 <span class="label">
 Primary SSIC:
 </span>
+${show(
+row.primary_ssic_code
+)}
+—
+${show(
+row.primary_ssic_description
+)}
+</div>
 
-${row.primary_ssic_description||"-"}
+<div>
+<span class="label">
+Secondary SSIC:
+</span>
+${show(
+row.secondary_ssic_code
+)}
+—
+${show(
+row.secondary_ssic_description
+)}
+</div>
+
+<div>
+<span class="label">
+Entity category:
+</span>
+${show(
+row.entity_category
+)}
+</div>
+
+<div>
+<span class="label">
+Former entity name:
+</span>
+${show(
+row.former_entity_name
+)}
 </div>
 
 </div>
 `;
 
 }
-catch{
+catch(err){
+
+console.error(
+err
+);
 
 target.innerHTML =
-"Failed to load details";
+"Failed loading details";
 
 }
 
 }
-
 searchBtn
 .addEventListener(
 "click",
