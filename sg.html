@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
@@ -28,11 +29,10 @@ input{
 
 button{
     padding:12px 18px;
-    cursor:pointer;
 }
 
 #status{
-    margin-top:14px;
+    margin-top:16px;
     color:#666;
 }
 
@@ -44,13 +44,13 @@ button{
 }
 
 .name{
+    font-size:18px;
     font-weight:600;
-    margin-bottom:8px;
 }
 
 .small{
     color:#666;
-    margin-top:4px;
+    margin-top:6px;
 }
 
 </style>
@@ -65,7 +65,7 @@ button{
 
 <input
 id="query"
-placeholder="Search company name"
+placeholder="Search company"
 />
 
 <button id="searchBtn">
@@ -92,26 +92,19 @@ if(resourceId){
 return resourceId;
 }
 
-const url =
-`https://data.gov.sg/api/action/package_show?id=${DATASET}`;
-
-const res =
-await fetch(url);
+const meta =
+await fetch(
+`https://data.gov.sg/api/action/package_show?id=${DATASET}`
+);
 
 const json =
-await res.json();
+await meta.json();
 
 resourceId =
 json
-?.result
-?.resources?.[0]
-?.id;
-
-if(!resourceId){
-throw new Error(
-"Could not load dataset"
-);
-}
+.result
+.resources[0]
+.id;
 
 return resourceId;
 
@@ -123,12 +116,13 @@ const query =
 document
 .getElementById("query")
 .value
-.trim();
+.trim()
+.toLowerCase();
 
 if(!query){
 
 status.textContent =
-"Enter company name";
+"Enter search text";
 
 return;
 
@@ -145,43 +139,50 @@ try{
 const id =
 await getResourceId();
 
-const filters =
-encodeURIComponent(
-JSON.stringify({
-entity_name:
-query
-})
-);
-
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
 `?resource_id=${id}`
 +
-`&limit=10`
+`&limit=50`
 +
 `&fields=entity_name,uen,uen_status_desc,entity_type_desc`
 +
-`&filters=${filters}`;
+`&q=${encodeURIComponent(query)}`;
 
 const res =
-await fetch(url);
+await fetch(
+url
+);
 
 const json =
 await res.json();
 
-const rows =
+let rows =
 json
 ?.result
 ?.records
 || [];
 
-status.textContent =
-`${rows.length} result(s)`;
+rows =
+rows
+.filter(r =>
+(
+r.entity_name || ""
+)
+.toLowerCase()
+.includes(
+query
+)
+)
+.slice(0,10);
 
 render(
 rows
 );
+
+status.textContent =
+`${rows.length} result(s)`;
 
 }
 catch(err){
@@ -203,7 +204,7 @@ results.innerHTML =
 "";
 
 if(
-rows.length === 0
+rows.length===0
 ){
 
 results.innerHTML =
@@ -213,70 +214,60 @@ return;
 
 }
 
-for(
-const row
-of rows
-){
+rows.forEach(row=>{
 
-const card =
+const div =
 document
 .createElement(
 "div"
 );
 
-card.className =
+div.className =
 "card";
 
-card.innerHTML =
+div.innerHTML =
 `
 <div class="name">
-${row.entity_name ?? "-"}
+${row.entity_name}
 </div>
 
 <div class="small">
 UEN:
-${row.uen ?? "-"}
+${row.uen}
 </div>
 
 <div class="small">
 Status:
-${row.uen_status_desc ?? "-"}
+${row.uen_status_desc}
 </div>
 
 <div class="small">
 Type:
-${row.entity_type_desc ?? "-"}
+${row.entity_type_desc}
 </div>
 `;
 
 results.appendChild(
-card
+div
 );
 
-}
+});
 
 }
 
-document
-.getElementById(
-"searchBtn"
-)
+searchBtn
 .addEventListener(
 "click",
 searchCompanies
 );
 
-document
-.getElementById(
-"query"
-)
+query
 .addEventListener(
 "keydown",
 e=>{
 
 if(
-e.key ===
-"Enter"
+e.key==="Enter"
 ){
 
 searchCompanies();
