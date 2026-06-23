@@ -90,10 +90,60 @@ Search
 
 <script>
 
+let DATASETS = {};
+
 const DATASET =
 "d_3f960c10fed6145404ca7b821f263b87";
 
 let current=[];
+
+async function loadCollectionMap(){
+
+const res =
+await fetch(
+"https://data.gov.sg/api/action/collection_show?id=2"
+);
+
+const json =
+await res.json();
+
+/*
+Strukturen inneholder en liste av datasets
+vi må mappe dem til A-Z basert på navn
+*/
+
+const items =
+json?.result?.datasets || json?.result || [];
+
+for(const ds of items){
+
+const name =
+(ds.name || "").toUpperCase();
+
+/*
+Eksempler:
+"ACRA INFORMATION A"
+"ACRA INFORMATION B"
+etc
+*/
+
+const match =
+name.match(/([A-Z]|OTHERS)$/);
+
+if(match){
+
+const key = match[1];
+
+DATASETS[key] =
+ds.resource_id;
+
+}
+
+}
+
+console.log("Loaded dataset map:", DATASETS);
+
+}
 
 async function searchCompanies(){
 
@@ -230,12 +280,9 @@ status.textContent =
 
 function render(){
 
-results.innerHTML =
-"";
+results.innerHTML="";
 
-if(
-!current.length
-){
+if(!current.length){
 
 results.innerHTML =
 "<p>No results</p>";
@@ -244,8 +291,7 @@ return;
 
 }
 
-current.forEach(
-(row,index)=>{
+current.forEach((row,index)=>{
 
 const div =
 document.createElement(
@@ -258,29 +304,30 @@ div.className =
 div.innerHTML =
 `
 <div>
-<b>
-${row.entity_name}
-</b>
+<b>${row.entity_name}</b>
 </div>
 
 <div class="small">
-UEN:
-${row.uen}
+UEN: ${row.uen}
 </div>
 
 <div class="small">
-${row.entity_type_desc||"-"}
+${row.entity_type_desc || "-"}
 </div>
 
-<div
-id="detail-${index}">
-</div>
+<div id="detail-${index}"></div>
 `;
 
-div.onclick =
+div.addEventListener(
+"click",
 ()=>loadDetails(
 row.uen,
+row.entity_name,
 index
+),
+{
+once:true
+}
 );
 
 results.appendChild(
@@ -293,6 +340,7 @@ div
 
 async function loadDetails(
 uen,
+entityName,
 index
 ){
 
@@ -302,15 +350,90 @@ document.getElementById(
 );
 
 if(
+!target
+){
+return;
+}
+
+if(
 target.dataset.loaded
 ){
 return;
 }
 
 target.innerHTML =
-"Loading...";
+"Loading details...";
 
-try{
+const first =
+(
+entityName
+||
+""
+)
+trim()
+.charAt(0)
+.toUpperCase();
+
+const bucket =
+/^[A-Z]$/.test(first)
+? first
+: "others";
+
+/*
+FYLL INN dataset-ID-er her.
+Begynn med bokstavene du trenger.
+Eksempel:
+A:"d_xxxxx",
+B:"d_xxxxx"
+*/
+
+const DATASETS = {
+
+A:"",
+B:"",
+C:"",
+D:"",
+E:"",
+F:"",
+G:"",
+H:"",
+I:"",
+J:"",
+K:"",
+L:"",
+M:"",
+N:"",
+O:"",
+P:"",
+Q:"",
+R:"",
+S:"",
+T:"",
+U:"",
+V:"",
+W:"",
+X:"",
+Y:"",
+Z:"",
+others:""
+
+};
+
+const dataset =
+DATASETS[bucket];
+
+if(!dataset){
+
+target.innerHTML =
+`
+Missing dataset id
+for bucket:
+${bucket}
+`;
+
+return;
+
+}
 
 const filters =
 encodeURIComponent(
@@ -322,14 +445,16 @@ uen
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
-`?resource_id=${DATASET}`
+`?resource_id=${dataset}`
 +
 `&limit=1`
 +
 `&filters=${filters}`;
 
 const res =
-await fetch(url);
+await fetch(
+url
+);
 
 const json =
 await res.json();
@@ -342,7 +467,7 @@ json
 if(!row){
 
 target.innerHTML =
-"No details";
+"No detailed record";
 
 return;
 
@@ -351,101 +476,68 @@ return;
 target.dataset.loaded =
 "1";
 
-function show(v){
+const ignore =
+new Set([
+"_id"
+]);
 
-return (
-v &&
-String(v)
-.trim()
+const html =
+Object
+.entries(row)
+
+.filter(
+([k])=>
+!ignore.has(k)
 )
-? v
-: "-";
 
+.map(
+([k,v])=>{
+
+const label =
+k
+.replaceAll(
+"_",
+" "
+)
+.replace(
+/\b\w/g,
+m=>
+m.toUpperCase()
+);
+
+return `
+<div
+style="
+margin-bottom:10px;
+">
+
+<div
+style="
+font-weight:600;
+">
+${label}
+</div>
+
+<div>
+${
+v ??
+"-"
 }
+</div>
+
+</div>
+`;
+
+})
+
+.join("");
 
 target.innerHTML =
 `
-<div class="details">
+<div
+class="details">
 
-<div>
-<b>
-${show(
-row.entity_name
-)}
-</b>
-</div>
-
-<br>
-
-<div>
-<span class="label">
-UEN:
-</span>
-
-${show(
-row.uen
-)}
-</div>
-
-<div>
-<span class="label">
-Agency:
-</span>
-
-${show(
-row.issuance_agency_desc
-)}
-</div>
-
-<div>
-<span class="label">
-Status:
-</span>
-
-${show(
-row.uen_status_desc
-)}
-</div>
-
-<div>
-<span class="label">
-Entity Type:
-</span>
-
-${show(
-row.entity_type_desc
-)}
-</div>
-
-<div>
-<span class="label">
-Registration Date:
-</span>
-
-${show(
-row.uen_issue_date
-)}
-</div>
-
-<div>
-<span class="label">
-Registered Address:
-</span>
-
-${show(
-row.reg_street_name
-)}
-</div>
-
-<div>
-<span class="label">
-Postal Code:
-</span>
-
-${show(
-row.reg_postal_code
-)}
-</div>
+${html}
 
 </div>
 `;
@@ -458,7 +550,7 @@ err
 );
 
 target.innerHTML =
-"Failed to load details";
+"Failed loading details";
 
 }
 
@@ -484,6 +576,8 @@ searchCompanies();
 }
 
 });
+
+loadCollectionMap();
 
 </script>
 
