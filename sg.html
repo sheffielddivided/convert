@@ -417,8 +417,82 @@ function renderCards(rows) {
 }
 
 /* ──────────────────────────────────────────
-   LOAD DETAILS
+   FORMAT RECORD
+   Merges address fields into one, drops na values
 ────────────────────────────────────────── */
+function formatRecord(row) {
+  // Address fields to consume
+  const addressFields = [
+    "block", "street_name",
+    "level_no", "unit_no",
+    "building_name", "postal_code",
+    // search dataset variants
+    "reg_street_name", "reg_postal_code",
+    // other_address fallback
+    "other_address_line1", "other_address_line2",
+    "address_type"
+  ];
+
+  const notNA = (v) => v && String(v).trim().toLowerCase() !== "na";
+
+  // Build formatted address string
+  // Format: [Block] [Street] #[Level]-[Unit] [Building] Singapore [Postal]
+  const parts = [];
+
+  const block    = notNA(row.block)         ? row.block         : null;
+  const street   = notNA(row.street_name)   ? row.street_name
+                 : notNA(row.reg_street_name) ? row.reg_street_name : null;
+  const level    = notNA(row.level_no)      ? row.level_no      : null;
+  const unit     = notNA(row.unit_no)       ? row.unit_no       : null;
+  const building = notNA(row.building_name) ? row.building_name : null;
+  const postal   = notNA(row.postal_code)   ? row.postal_code
+                 : notNA(row.reg_postal_code) ? row.reg_postal_code : null;
+
+  if (block)  parts.push(block);
+  if (street) parts.push(street);
+
+  if (level && unit)  parts.push(`#${level}-${unit}`);
+  else if (level)     parts.push(`#${level}`);
+  else if (unit)      parts.push(`#${unit}`);
+
+  if (building) parts.push(building);
+
+  parts.push("Singapore");
+  if (postal) parts.push(postal);
+
+  // Fallback: other_address lines
+  const otherLine1 = notNA(row.other_address_line1) ? row.other_address_line1 : null;
+  const otherLine2 = notNA(row.other_address_line2) ? row.other_address_line2 : null;
+
+  const addressStr = parts.length > 1  // more than just "Singapore"
+    ? parts.join(" ")
+    : [otherLine1, otherLine2, "Singapore", postal].filter(Boolean).join(", ");
+
+  // Build output record: omit consumed address fields, inject merged address
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (addressFields.includes(k)) continue;
+    out[k] = v;
+  }
+
+  // Inject address after entity_name if present, else at start
+  const result = {};
+  for (const [k, v] of Object.entries(out)) {
+    result[k] = v;
+    if (k === "entity_name" || k === "entity_type_desc") {
+      // keep going, insert address after these key fields
+    }
+  }
+
+  // Insert address as a named field
+  if (addressStr.trim() !== "Singapore") {
+    out["address"] = addressStr;
+  }
+
+  return out;
+}
+
+
 async function loadDetails(uen, entityName, panel) {
   panel.innerHTML = `
     <div style="padding:4px 0">
@@ -445,9 +519,16 @@ async function loadDetails(uen, entityName, panel) {
       return;
     }
 
-    const fields = Object.entries(row)
+    const formatted = formatRecord(row);
+
+    const fields = Object.entries(formatted)
       .filter(([k]) => k !== "_id")
-      .filter(([, v]) => v !== null && v !== "" && v !== undefined)
+      .filter(([, v]) => {
+        if (v === null || v === undefined || v === "") return false;
+        // Filter out fields whose value is literally "na" (case-insensitive)
+        if (String(v).trim().toLowerCase() === "na") return false;
+        return true;
+      })
       .map(([k, v]) => `
         <div class="detail-field">
           <label>${escHtml(humanLabel(k))}</label>
