@@ -2,20 +2,20 @@
 <html lang="no">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Singapore selskapsregister</title>
+<title>Singapore Company Search</title>
 
 <style>
 body{
-    font-family:system-ui,sans-serif;
+    font-family:system-ui;
     max-width:900px;
     margin:40px auto;
-    padding:16px;
+    padding:20px;
 }
 
 input{
-    width:360px;
+    width:350px;
     padding:10px;
 }
 
@@ -25,8 +25,8 @@ button{
 
 .card{
     border:1px solid #ddd;
+    padding:12px;
     border-radius:8px;
-    padding:14px;
     margin-top:12px;
 }
 
@@ -41,12 +41,12 @@ button{
 <h1>Singapore Company Search</h1>
 
 <input
-    id="query"
-    placeholder="Skriv selskapsnavn"
+id="query"
+placeholder="Company name"
 />
 
 <button onclick="searchCompanies()">
-Søk
+Search
 </button>
 
 <p id="status"></p>
@@ -71,81 +71,37 @@ return;
 }
 
 status.textContent =
-"Søker...";
+"Searching...";
 
 results.innerHTML =
 "";
 
 try{
 
-const body = {
-columnNames:[
-"uen",
-"entity_name",
-"uen_status_desc",
-"entity_type_desc"
-],
-filters:[
-{
-columnName:"entity_name",
-type:"ILIKE",
-value:q
-}
-]
-};
+const url =
+`https://api-open.data.gov.sg/v1/public/api/datasets/${DATASET}/poll-download`;
 
-const init =
-await fetch(
-`https://api-open.data.gov.sg/v1/public/api/datasets/${DATASET}/initiate-download`,
-{
-method:"GET",
-headers:{
-"Content-Type":"application/json"
-}
-}
-);
+const response =
+await fetch(url);
 
-if(!init.ok){
+if(!response.ok){
 throw new Error(
-"Kunne ikke starte søk"
+"API failed"
 );
 }
 
-const poll =
-await fetch(
-`https://api-open.data.gov.sg/v1/public/api/datasets/${DATASET}/poll-download`,
-{
-method:"GET"
-}
-);
-
-const meta =
-await poll.json();
-
-if(
-!meta.data?.url
-){
-throw new Error(
-"Ingen data"
-);
-}
-
-const csv =
-await fetch(
-meta.data.url
-);
-
-const text =
-await csv.text();
+const json =
+await response.json();
 
 const rows =
-text
-.split("\n")
-.slice(1)
-.filter(Boolean)
-.filter(
-r =>
-r
+json?.data?.records || [];
+
+const matches =
+rows
+.filter(r =>
+(
+r.entity_name || ""
+)
 .toLowerCase()
 .includes(
 q.toLowerCase()
@@ -154,42 +110,45 @@ q.toLowerCase()
 .slice(0,10);
 
 status.textContent =
-`${rows.length} treff`;
+`${matches.length} results`;
 
-rows.forEach(r=>{
+for(const row of matches){
 
-const c =
-r.split(",");
-
-const el =
-document
-.createElement(
+const div =
+document.createElement(
 "div"
 );
 
-el.className =
+div.className =
 "card";
 
-el.innerHTML = `
-<h3>${c[1]||"-"}</h3>
+div.innerHTML =
+`
+<h3>
+${row.entity_name || "-"}
+</h3>
+
 <div class="small">
-UEN: ${c[0]||"-"}
+UEN:
+${row.uen || "-"}
 </div>
 
 <div class="small">
 Status:
-${c[2]||"-"}
+${row.uen_status_desc || "-"}
 </div>
 
 <div class="small">
 Type:
-${c[3]||"-"}
+${row.entity_type_desc || "-"}
 </div>
 `;
 
-results.appendChild(el);
+results.appendChild(
+div
+);
 
-});
+}
 
 }
 catch(err){
@@ -197,7 +156,7 @@ catch(err){
 console.error(err);
 
 status.textContent =
-"Feil ved søk";
+err.message;
 
 }
 
