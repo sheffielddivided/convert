@@ -1,15 +1,11 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <title>Singapore Company Search</title>
 
 <style>
-
 body{
     font-family:system-ui,sans-serif;
     max-width:1000px;
@@ -55,16 +51,8 @@ button{
     border-top:1px solid #eee;
 }
 
-.label{
-    font-weight:600;
-}
-
-.small{
-    color:#666;
-}
-
+.small{ color:#666; }
 </style>
-
 </head>
 
 <body>
@@ -72,192 +60,83 @@ button{
 <h1>Singapore Company Search</h1>
 
 <div class="controls">
-
-<input
-id="query"
-placeholder="Search company name"
-/>
-
-<button id="searchBtn">
-Search
-</button>
-
+<input id="query" placeholder="Search company name"/>
+<button id="searchBtn">Search</button>
 </div>
 
 <div id="status"></div>
-
 <div id="results"></div>
 
 <script>
 
-let DATASETS = {};
-
-const DATASET =
+/*
+========================================================
+STAGE 1 DATASET (FAST SEARCH)
+========================================================
+*/
+const SEARCH_DATASET =
 "d_3f960c10fed6145404ca7b821f263b87";
 
-let current=[];
-
-async function loadCollectionMap(){
-
-const res =
-await fetch(
-"https://data.gov.sg/api/action/collection_show?id=2"
-);
-
-const json =
-await res.json();
+/*
+========================================================
+STAGE 2 DATASET (ACRA FULL DETAIL)
+IMPORTANT:
+Dette er den mest stabile single-dataset lookup
+========================================================
+*/
+const DETAIL_DATASET =
+"d_8575e84912df3c28995b8e6e0e05205a"; 
+// ACRA Information (main detailed register)
 
 /*
-Strukturen inneholder en liste av datasets
-vi må mappe dem til A-Z basert på navn
+========================================================
+STATE
+========================================================
 */
-
-const items =
-json?.result?.datasets || json?.result || [];
-
-for(const ds of items){
-
-const name =
-(ds.name || "").toUpperCase();
+let current = [];
 
 /*
-Eksempler:
-"ACRA INFORMATION A"
-"ACRA INFORMATION B"
-etc
+========================================================
+SEARCH
+========================================================
 */
-
-const match =
-name.match(/([A-Z]|OTHERS)$/);
-
-if(match){
-
-const key = match[1];
-
-DATASETS[key] =
-ds.resource_id;
-
-}
-
-}
-
-console.log("Loaded dataset map:", DATASETS);
-
-}
-
 async function searchCompanies(){
 
 const q =
-document
-.getElementById("query")
-.value
-.trim();
+document.getElementById("query").value.trim();
 
-if(!q){
-return;
-}
+if(!q) return;
 
-status.textContent =
-"Searching...";
-
-results.innerHTML =
-"";
+status.textContent = "Searching...";
+results.innerHTML = "";
 
 try{
 
 const search =
-encodeURIComponent(
-JSON.stringify({
+encodeURIComponent(JSON.stringify({
 entity_name:q
-})
-);
+}));
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
-+
-`?resource_id=${DATASET}`
-+
-`&limit=50`
-+
-`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
-+
-`&q=${search}`;
++ `?resource_id=${SEARCH_DATASET}`
++ `&limit=50`
++ `&q=${search}`;
 
-const res =
-await fetch(url);
+const res = await fetch(url);
+const json = await res.json();
 
-if(!res.ok){
+let rows = json?.result?.records || [];
 
-throw new Error(
-`HTTP ${res.status}`
-);
-
-}
-
-const json =
-await res.json();
-
-let rows =
-json
-?.result
-?.records
-|| [];
-
-rows =
-rows
-.filter(r=>
-(
-r.entity_name
-||
-""
-)
+rows = rows
+.filter(r =>
+(r.entity_name || "")
 .toLowerCase()
-.includes(
-q.toLowerCase()
+.includes(q.toLowerCase())
 )
-)
-
-.sort((a,b)=>{
-
-const A =
-a.entity_name
-.toLowerCase();
-
-const B =
-b.entity_name
-.toLowerCase();
-
-const qn =
-q.toLowerCase();
-
-if(
-A.startsWith(qn)
-&&
-!B.startsWith(qn)
-){
-return -1;
-}
-
-if(
-!A.startsWith(qn)
-&&
-B.startsWith(qn)
-){
-return 1;
-}
-
-return (
-A.length
--
-B.length
-);
-
-})
-
 .slice(0,10);
 
-current =
-rows;
+current = rows;
 
 render();
 
@@ -266,140 +145,77 @@ status.textContent =
 
 }
 catch(err){
-
-console.error(
-err
-);
-
-status.textContent =
-"Search failed";
-
+console.error(err);
+status.textContent = "Search failed";
 }
 
 }
 
+/*
+========================================================
+RENDER RESULTS
+========================================================
+*/
 function render(){
 
-results.innerHTML="";
+results.innerHTML = "";
 
 if(!current.length){
-
-results.innerHTML =
-"<p>No results</p>";
-
+results.innerHTML = "<p>No results</p>";
 return;
-
 }
 
 current.forEach((row,index)=>{
 
-const div =
-document.createElement(
-"div"
-);
+const div = document.createElement("div");
+div.className = "card";
 
-div.className =
-"card";
-
-div.innerHTML =
-`
-<div>
-<b>${row.entity_name}</b>
-</div>
-
-<div class="small">
-UEN: ${row.uen}
-</div>
-
-<div class="small">
-${row.entity_type_desc || "-"}
-</div>
-
+div.innerHTML = `
+<div><b>${row.entity_name}</b></div>
+<div class="small">UEN: ${row.uen}</div>
+<div class="small">${row.entity_type_desc || "-"}</div>
 <div id="detail-${index}"></div>
 `;
 
-div.addEventListener(
-"click",
-()=>loadDetails(
-row.uen,
-row.entity_name,
-index
-),
-{
-once:true
-}
-);
+div.addEventListener("click",()=>{
+loadDetails(row.uen,index);
+},{once:true});
 
-results.appendChild(
-div
-);
+results.appendChild(div);
 
 });
 
 }
 
-async function loadDetails(
-uen,
-entityName,
-index
-){
+/*
+========================================================
+DETAIL LOOKUP (STABLE SINGLE DATASET)
+========================================================
+*/
+async function loadDetails(uen,index){
 
 const target =
-document.getElementById(
-`detail-${index}`
-);
+document.getElementById(`detail-${index}`);
 
 if(!target) return;
 
 if(target.dataset.loaded) return;
 
-target.innerHTML =
-"Loading details...";
+target.innerHTML = "Loading details...";
 
 try{
 
-const first =
-(entityName || "")
-.trim()
-.charAt(0)
-.toUpperCase();
-
-const bucket =
-/^[A-Z]$/.test(first)
-? first
-: "others";
-
-const dataset = DATASETS[bucket];
-
-if(!dataset){
-
-target.innerHTML =
-`Missing dataset id for bucket: ${bucket}`;
-
-return;
-
-}
-
 const filters =
-encodeURIComponent(
-JSON.stringify({ uen })
-);
+encodeURIComponent(JSON.stringify({ uen }));
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
-+ `?resource_id=${dataset}`
++ `?resource_id=${DETAIL_DATASET}`
 + `&limit=1`
 + `&filters=${filters}`;
 
-const res =
-await fetch(url);
-
-if(!res.ok){
-throw new Error(`HTTP ${res.status}`);
-}
-
-const json =
-await res.json();
+const res = await fetch(url);
+const json = await res.json();
 
 const row =
 json?.result?.records?.[0];
@@ -411,21 +227,22 @@ return;
 
 target.dataset.loaded = "1";
 
-const ignore =
-new Set(["_id"]);
-
+/*
+========================================================
+AUTO RENDER ALL FIELDS (FUTURE-PROOF)
+========================================================
+*/
 const html =
 Object.entries(row)
-.filter(([k]) => !ignore.has(k))
-.map(([k,v]) => {
+.map(([k,v])=>{
 
 const label =
 k.replaceAll("_"," ")
- .replace(/\b\w/g, m => m.toUpperCase());
+ .replace(/\b\w/g,m=>m.toUpperCase());
 
 return `
-<div style="margin-bottom:10px;">
-  <div style="font-weight:600;">${label}</div>
+<div style="margin-bottom:8px;">
+  <div><b>${label}</b></div>
   <div>${v ?? "-"}</div>
 </div>
 `;
@@ -437,41 +254,24 @@ target.innerHTML =
 
 }
 catch(err){
-
 console.error(err);
-
-target.innerHTML =
-"Failed loading details";
-
+target.innerHTML = "Failed loading details";
 }
 
 }
 
-searchBtn
-.addEventListener(
-"click",
-searchCompanies
-);
+/*
+========================================================
+EVENTS
+========================================================
+*/
+searchBtn.addEventListener("click",searchCompanies);
 
-query
-.addEventListener(
-"keydown",
-e=>{
-
-if(
-e.key==="Enter"
-){
-
-searchCompanies();
-
-}
-
+query.addEventListener("keydown",e=>{
+if(e.key==="Enter") searchCompanies();
 });
-
-loadCollectionMap();
 
 </script>
 
 </body>
-
 </html>
