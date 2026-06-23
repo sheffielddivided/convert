@@ -278,9 +278,12 @@
 /* ──────────────────────────────────────────
    CONFIG
 ────────────────────────────────────────── */
-const SEARCH_DATASET = "d_3f960c10fed6145404ca7b821f263b87";
-const DETAIL_DATASET = "d_8575e84912df3c28995b8e6e0e05205a";
-const BASE = "https://data.gov.sg/api/action/datastore_search";
+const SEARCH_DATASET   = "d_3f960c10fed6145404ca7b821f263b87";
+const BASE             = "https://data.gov.sg/api/action/datastore_search";
+const COLLECTION_META  = "https://api-production.data.gov.sg/v2/public/api/collections/2/metadata?withDatasetMetadata=true";
+
+// Cache: letter → datasetId, populated lazily on first detail lookup
+let letterDatasetMap = null;
 
 /* ──────────────────────────────────────────
    DOM REFS
@@ -398,7 +401,7 @@ function renderCards(rows) {
 
       if (isOpen && !loaded) {
         loaded = true;
-        loadDetails(row.uen, panel);
+        loadDetails(row.uen, row.entity_name ?? "", panel);
       }
     }
 
@@ -416,7 +419,7 @@ function renderCards(rows) {
 /* ──────────────────────────────────────────
    LOAD DETAILS
 ────────────────────────────────────────── */
-async function loadDetails(uen, panel) {
+async function loadDetails(uen, entityName, panel) {
   panel.innerHTML = `
     <div style="padding:4px 0">
       <div class="skeleton"></div>
@@ -425,9 +428,14 @@ async function loadDetails(uen, panel) {
     </div>`;
 
   try {
-    let row = await fetchDetailRow(DETAIL_DATASET, uen);
+    // Resolve which letter-dataset to use based on entity name
+    const detailDatasetId = await resolveDetailDataset(entityName);
 
-    // Fallback: try the search dataset if detail dataset has no record
+    let row = detailDatasetId
+      ? await fetchDetailRow(detailDatasetId, uen)
+      : null;
+
+    // Fallback: search dataset (fewer fields, but full coverage)
     if (!row) {
       row = await fetchDetailRow(SEARCH_DATASET, uen);
     }
@@ -439,10 +447,11 @@ async function loadDetails(uen, panel) {
 
     const fields = Object.entries(row)
       .filter(([k]) => k !== "_id")
+      .filter(([, v]) => v !== null && v !== "" && v !== undefined)
       .map(([k, v]) => `
         <div class="detail-field">
           <label>${escHtml(humanLabel(k))}</label>
-          <p>${escHtml(v ?? "–")}</p>
+          <p>${escHtml(v)}</p>
         </div>
       `).join("");
 
@@ -452,6 +461,45 @@ async function loadDetails(uen, panel) {
     console.error(err);
     panel.innerHTML = `<div class="state-msg" style="padding:20px">Failed to load details. Try again later.</div>`;
   }
+}
+
+/* ──────────────────────────────────────────
+   RESOLVE LETTER DATASET
+   Fetches collection 2 metadata once, then
+   maps first letter → datasetId
+────────────────────────────────────────── */
+async function resolveDetailDataset(entityName) {
+  if (!letterDatasetMap) {
+    letterDatasetMap = await buildLetterDatasetMap();
+  }
+
+  const firstLetter = (entityName || "").trim()[0]?.toUpperCase() ?? "";
+  const isLetter = /^[A-Z]$/.test(firstLetter);
+  const key = isLetter ? firstLetter : "others";
+
+  return letterDatasetMap[key] ?? null;
+}
+
+async function buildLetterDatasetMap() {
+  const res = await fetch(COLLECTION_META);
+
+  if (!res.ok) throw new Error(`Collection metadata HTTP ${res.status}`);
+
+  const json = await res.json();
+  const datasets = json?.data?.datasetMetadata ?? [];
+
+  // Dataset names are like "ACRA Information on Corporate Entities ('N')"
+  // or "ACRA Information on Corporate Entities (others)"
+  const map = {};
+
+  for (const ds of datasets) {
+    const match = ds.name?.match(/\('([A-Z])'\)/) || ds.name?.match(/\(others\)/i);
+    if (!match) continue;
+    const key = match[1] ?? "others";
+    map[key] = ds.datasetId;
+  }
+
+  return map;
 }
 
 async function fetchDetailRow(resourceId, uen) {
