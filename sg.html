@@ -3,282 +3,496 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Singapore Company Search (Stable)</title>
+<title>Singapore Company Search</title>
 
 <style>
-body{
-    font-family:system-ui,sans-serif;
-    max-width:1000px;
-    margin:40px auto;
-    padding:20px;
-}
+  /* ── Tokens ── */
+  :root {
+    --bg:       #f5f7fa;
+    --surface:  #ffffff;
+    --border:   #e2e6ec;
+    --accent:   #c0392b;        /* Singapore red */
+    --accent-d: #96281b;
+    --text:     #1a1f2e;
+    --muted:    #6b7280;
+    --radius:   10px;
+    --shadow:   0 1px 4px rgba(0,0,0,.08);
+  }
 
-.controls{
-    display:flex;
-    gap:10px;
-}
+  *, *::before, *::after { box-sizing: border-box; }
 
-input{
-    flex:1;
-    padding:12px;
-    font-size:16px;
-}
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
 
-button{
-    padding:12px 18px;
-}
+  /* ── Header ── */
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 28px 24px 24px;
+  }
 
-#status{
-    margin-top:12px;
-    color:#666;
-}
+  .header-inner {
+    max-width: 780px;
+    margin: 0 auto;
+  }
 
-.card{
-    border:1px solid #ddd;
-    border-radius:8px;
-    padding:14px;
-    margin-top:12px;
-    cursor:pointer;
-}
+  .flag-stripe {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
 
-.card:hover{
-    background:#fafafa;
-}
+  .flag-stripe span {
+    display: block;
+    height: 4px;
+    width: 32px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.55);
+  }
 
-.details{
-    margin-top:12px;
-    padding-top:12px;
-    border-top:1px solid #eee;
-}
+  .flag-stripe span:first-child { background: #fff; }
 
-.small{ color:#666; }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: .85rem;
+    opacity: .8;
+  }
+
+  /* ── Search bar ── */
+  .search-wrap {
+    max-width: 780px;
+    margin: 28px auto 0;
+    padding: 0 24px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  #query {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  #query:focus { border-color: var(--accent); }
+
+  #searchBtn {
+    padding: 12px 22px;
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  #searchBtn:hover  { background: var(--accent-d); }
+  #searchBtn:active { opacity: .85; }
+  #searchBtn:disabled { opacity: .5; cursor: default; }
+
+  /* ── Status ── */
+  #status {
+    max-width: 780px;
+    margin: 12px auto 0;
+    padding: 0 24px;
+    color: var(--muted);
+    font-size: .85rem;
+    min-height: 1.4em;
+  }
+
+  #status.error { color: var(--accent); }
+
+  /* ── Results ── */
+  #results {
+    max-width: 780px;
+    margin: 16px auto 60px;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  .card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .card-header:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .card-name  { font-weight: 600; font-size: 1rem; }
+  .card-meta  { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+  .chevron {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--muted);
+    transition: transform .2s;
+  }
+
+  .card.open .chevron { transform: rotate(180deg); }
+
+  /* ── Detail panel ── */
+  .detail-panel {
+    display: none;
+    border-top: 1.5px solid var(--border);
+    padding: 18px;
+    background: #fcfcfc;
+  }
+
+  .card.open .detail-panel { display: block; }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px 24px;
+  }
+
+  .detail-field label {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .detail-field p {
+    margin: 0;
+    font-size: .9rem;
+    word-break: break-word;
+  }
+
+  /* ── Loading skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, #ececec 25%, #f5f5f5 50%, #ececec 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 4px;
+    height: 14px;
+    margin-bottom: 8px;
+  }
+
+  .skeleton.short { width: 45%; }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Empty / error states ── */
+  .state-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+
+  .state-msg b { display: block; font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 520px) {
+    h1 { font-size: 1.3rem; }
+    .search-row { flex-direction: column; }
+    #searchBtn { width: 100%; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chevron, .card, #searchBtn, #query { transition: none; }
+    .skeleton { animation: none; }
+  }
 </style>
 </head>
-
 <body>
 
-<h1>Singapore Company Search</h1>
+<header>
+  <div class="header-inner">
+    <div class="flag-stripe"><span></span><span></span><span></span><span></span></div>
+    <h1>Singapore Company Search</h1>
+    <p class="subtitle">Search registered entities via data.gov.sg</p>
+  </div>
+</header>
 
-<div class="controls">
-<input id="query" placeholder="Search company name"/>
-<button id="searchBtn">Search</button>
+<div class="search-wrap">
+  <div class="search-row">
+    <input
+      id="query"
+      type="search"
+      placeholder="Company name…"
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Search company name"
+    />
+    <button id="searchBtn" aria-label="Search">Search</button>
+  </div>
 </div>
 
-<div id="status"></div>
-<div id="results"></div>
+<div id="status" role="status" aria-live="polite"></div>
+<div id="results" aria-live="polite"></div>
 
 <script>
+/* ──────────────────────────────────────────
+   CONFIG
+────────────────────────────────────────── */
+const SEARCH_DATASET = "d_3f960c10fed6145404ca7b821f263b87";
+const DETAIL_DATASET = "d_8575e84912df3c28995b8e6e0e05205a";
+const BASE = "https://data.gov.sg/api/action/datastore_search";
 
-/*
-========================================================
-CONFIG
-========================================================
-*/
-const SEARCH_DATASET =
-"d_3f960c10fed6145404ca7b821f263b87";
+/* ──────────────────────────────────────────
+   DOM REFS
+────────────────────────────────────────── */
+const queryEl  = document.getElementById("query");
+const searchBtn = document.getElementById("searchBtn");
+const statusEl  = document.getElementById("status");
+const resultsEl = document.getElementById("results");
 
-const DETAIL_DATASET =
-"d_8575e84912df3c28995b8e6e0e05205a";
-
-/*
-========================================================
-STATE
-========================================================
-*/
-let current = [];
-
-/*
-========================================================
-SEARCH (LIMIT 10 enforced server-side)
-========================================================
-*/
-async function searchCompanies(){
-
-const q =
-document.getElementById("query").value.trim();
-
-if(!q) return;
-
-status.textContent = "Searching...";
-results.innerHTML = "";
-
-try{
-
-const search =
-encodeURIComponent(JSON.stringify({
-entity_name: q
-}));
-
-const url =
-`https://data.gov.sg/api/action/datastore_search`
-+ `?resource_id=${SEARCH_DATASET}`
-+ `&limit=10`
-+ `&q=${search}`;
-
-const res = await fetch(url);
-const json = await res.json();
-
-let rows = json?.result?.records || [];
-
-rows = rows.filter(r =>
-(r.entity_name || "")
-.toLowerCase()
-.includes(q.toLowerCase())
-);
-
-current = rows;
-
-render();
-
-status.textContent =
-`${rows.length} results`;
-
-}
-catch(err){
-console.error(err);
-status.textContent = "Search failed";
+/* ──────────────────────────────────────────
+   DEBOUNCE
+────────────────────────────────────────── */
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
+/* ──────────────────────────────────────────
+   API HELPERS
+────────────────────────────────────────── */
+async function apiFetch(resourceId, params) {
+  const qs = new URLSearchParams({ resource_id: resourceId, ...params });
+  const res = await fetch(`${BASE}?${qs}`);
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} – ${res.statusText}`);
+  }
+
+  const json = await res.json();
+
+  if (!json.success) {
+    throw new Error("API returned success:false");
+  }
+
+  return json.result;
 }
 
-/*
-========================================================
-RENDER LIST
-========================================================
-*/
-function render(){
+/* ──────────────────────────────────────────
+   SEARCH
+────────────────────────────────────────── */
+async function searchCompanies() {
+  const q = queryEl.value.trim();
+  if (!q) return;
 
-results.innerHTML = "";
+  setStatus("Searching…");
+  resultsEl.innerHTML = "";
+  searchBtn.disabled = true;
 
-if(!current.length){
-results.innerHTML = "<p>No results</p>";
-return;
+  try {
+    const result = await apiFetch(SEARCH_DATASET, {
+      limit: 10,
+      q: JSON.stringify({ entity_name: q })
+    });
+
+    const rows = (result.records || []);
+
+    if (!rows.length) {
+      resultsEl.innerHTML = `
+        <div class="state-msg">
+          <b>No results</b>
+          Try a different name or partial name.
+        </div>`;
+      setStatus("");
+      return;
+    }
+
+    renderCards(rows);
+    setStatus(`${rows.length} result${rows.length !== 1 ? "s" : ""}`);
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Search failed. Please try again.", true);
+  } finally {
+    searchBtn.disabled = false;
+  }
 }
 
-current.forEach((row,index)=>{
+/* ──────────────────────────────────────────
+   RENDER CARDS
+────────────────────────────────────────── */
+function renderCards(rows) {
+  resultsEl.innerHTML = "";
 
-const div = document.createElement("div");
-div.className = "card";
+  rows.forEach((row) => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-div.innerHTML = `
-<div><b>${row.entity_name}</b></div>
-<div class="small">UEN: ${row.uen}</div>
-<div class="small">${row.entity_type_desc || "-"}</div>
-<div id="detail-${index}"></div>
-`;
+    const header = document.createElement("div");
+    header.className = "card-header";
+    header.setAttribute("tabindex", "0");
+    header.setAttribute("role", "button");
+    header.setAttribute("aria-expanded", "false");
 
-div.addEventListener("click",()=>{
-loadDetails(row.uen,index);
-},{once:true});
+    header.innerHTML = `
+      <div>
+        <div class="card-name">${escHtml(row.entity_name ?? "–")}</div>
+        <div class="card-meta">
+          UEN: ${escHtml(row.uen ?? "–")}
+          ${row.entity_type_desc ? ` · ${escHtml(row.entity_type_desc)}` : ""}
+        </div>
+      </div>
+      <svg class="chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polyline points="5 8 10 13 15 8"/>
+      </svg>
+    `;
 
-results.appendChild(div);
+    const panel = document.createElement("div");
+    panel.className = "detail-panel";
 
+    let loaded = false;
+
+    function toggle() {
+      const isOpen = card.classList.toggle("open");
+      header.setAttribute("aria-expanded", isOpen);
+
+      if (isOpen && !loaded) {
+        loaded = true;
+        loadDetails(row.uen, panel);
+      }
+    }
+
+    header.addEventListener("click", toggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    card.appendChild(header);
+    card.appendChild(panel);
+    resultsEl.appendChild(card);
+  });
+}
+
+/* ──────────────────────────────────────────
+   LOAD DETAILS
+────────────────────────────────────────── */
+async function loadDetails(uen, panel) {
+  panel.innerHTML = `
+    <div style="padding:4px 0">
+      <div class="skeleton"></div>
+      <div class="skeleton short"></div>
+      <div class="skeleton"></div>
+    </div>`;
+
+  try {
+    let row = await fetchDetailRow(DETAIL_DATASET, uen);
+
+    // Fallback: try the search dataset if detail dataset has no record
+    if (!row) {
+      row = await fetchDetailRow(SEARCH_DATASET, uen);
+    }
+
+    if (!row) {
+      panel.innerHTML = `<div class="state-msg" style="padding:20px">No additional details found.</div>`;
+      return;
+    }
+
+    const fields = Object.entries(row)
+      .filter(([k]) => k !== "_id")
+      .map(([k, v]) => `
+        <div class="detail-field">
+          <label>${escHtml(humanLabel(k))}</label>
+          <p>${escHtml(v ?? "–")}</p>
+        </div>
+      `).join("");
+
+    panel.innerHTML = `<div class="detail-grid">${fields}</div>`;
+
+  } catch (err) {
+    console.error(err);
+    panel.innerHTML = `<div class="state-msg" style="padding:20px">Failed to load details. Try again later.</div>`;
+  }
+}
+
+async function fetchDetailRow(resourceId, uen) {
+  const result = await apiFetch(resourceId, {
+    limit: 1,
+    filters: JSON.stringify({ uen })
+  });
+  return result.records?.[0] ?? null;
+}
+
+/* ──────────────────────────────────────────
+   UTILS
+────────────────────────────────────────── */
+function humanLabel(key) {
+  return key
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function setStatus(msg, isError = false) {
+  statusEl.textContent = msg;
+  statusEl.className = isError ? "error" : "";
+}
+
+/* ──────────────────────────────────────────
+   EVENTS
+────────────────────────────────────────── */
+const debouncedSearch = debounce(searchCompanies, 300);
+
+searchBtn.addEventListener("click", searchCompanies);
+queryEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") searchCompanies();
 });
-
-}
-
-/*
-========================================================
-DETAIL LOOKUP (NO A-Z LOGIC, SINGLE SOURCE OF TRUTH)
-========================================================
-*/
-async function loadDetails(uen,index){
-
-const target =
-document.getElementById(`detail-${index}`);
-
-if(!target) return;
-if(target.dataset.loaded) return;
-
-target.innerHTML = "Loading details...";
-
-try{
-
-const filters =
-encodeURIComponent(JSON.stringify({ uen }));
-
-const url =
-`https://data.gov.sg/api/action/datastore_search`
-+ `?resource_id=${DETAIL_DATASET}`
-+ `&limit=1`
-+ `&filters=${filters}`;
-
-const res = await fetch(url);
-const json = await res.json();
-
-let row = json?.result?.records?.[0];
-
-/*
-========================================================
-FALLBACK (important for dataset coverage gaps)
-========================================================
-*/
-if(!row){
-
-const fallbackUrl =
-`https://data.gov.sg/api/action/datastore_search`
-+ `?resource_id=${SEARCH_DATASET}`
-+ `&limit=1`
-+ `&filters=${filters}`;
-
-const fallbackRes = await fetch(fallbackUrl);
-const fallbackJson = await fallbackRes.json();
-
-row = fallbackJson?.result?.records?.[0];
-}
-
-if(!row){
-target.innerHTML = "No detailed record";
-return;
-}
-
-target.dataset.loaded = "1";
-
-/*
-========================================================
-AUTO RENDER ALL FIELDS (future-proof)
-========================================================
-*/
-const html =
-Object.entries(row)
-.filter(([k]) => k !== "_id")
-.map(([k,v]) => {
-
-const label =
-k.replaceAll("_"," ")
- .replace(/\b\w/g,m=>m.toUpperCase());
-
-return `
-<div style="margin-bottom:8px">
-<b>${label}</b><br>
-${v ?? "-"}
-</div>
-`;
-
-}).join("");
-
-target.innerHTML =
-`<div class="details">${html}</div>`;
-
-}
-catch(err){
-console.error(err);
-target.innerHTML = "Failed loading details";
-}
-
-}
-
-/*
-========================================================
-EVENTS
-========================================================
-*/
-searchBtn.addEventListener("click",searchCompanies);
-
-query.addEventListener("keydown",e=>{
-if(e.key==="Enter") searchCompanies();
-});
-
 </script>
 
 </body>
