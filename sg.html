@@ -74,8 +74,8 @@ Search
 
 <script>
 
-const RESOURCE_ID =
-"76724ea4261ebdddaeeddee70f9c64d9";
+const DATASET =
+"d_3f960c10fed6145404ca7b821f263b87";
 
 async function searchCompanies(){
 
@@ -88,14 +88,14 @@ document
 if(!q){
 
 status.textContent =
-"Enter company name";
+"Enter search text";
 
 return;
 
 }
 
 status.textContent =
-"Searching…";
+"Searching...";
 
 results.innerHTML =
 "";
@@ -105,16 +105,20 @@ try{
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 +
-`?resource_id=${RESOURCE_ID}`
+`?resource_id=${DATASET}`
 +
-`&limit=50`
+`&limit=25`
 +
-`&q=${encodeURIComponent(q)}`;
+`&fields=entity_name,uen,uen_status_desc,entity_type_desc`
++
+`&q=${encodeURIComponent(
+JSON.stringify({
+entity_name:q
+})
+)}`;
 
 const res =
-await fetch(
-url
-);
+await fetch(url);
 
 if(!res.ok){
 
@@ -135,20 +139,15 @@ json
 
 rows =
 rows
-.filter(r =>
-(
-r.entity_name || ""
-)
+.filter(r=>
+(r.entity_name||"")
 .toLowerCase()
 .includes(
 q.toLowerCase()
-)
-)
+))
 .slice(0,10);
 
-render(
-rows
-);
+render(rows);
 
 status.textContent =
 `${rows.length} result(s)`;
@@ -156,9 +155,7 @@ status.textContent =
 }
 catch(err){
 
-console.error(
-err
-);
+console.error(err);
 
 status.textContent =
 err.message;
@@ -169,12 +166,9 @@ err.message;
 
 function render(rows){
 
-results.innerHTML =
-"";
+results.innerHTML="";
 
-if(
-rows.length===0
-){
+if(!rows.length){
 
 results.innerHTML =
 "<p>No results</p>";
@@ -183,21 +177,17 @@ return;
 
 }
 
-for(
-const row
-of rows
-){
+rows.forEach(row=>{
 
-const card =
-document
-.createElement(
+const div =
+document.createElement(
 "div"
 );
 
-card.className =
+div.className =
 "card";
 
-card.innerHTML =
+div.innerHTML =
 `
 <h3>
 ${row.entity_name || "-"}
@@ -220,10 +210,10 @@ ${row.entity_type_desc || "-"}
 `;
 
 results.appendChild(
-card
+div
 );
 
-}
+});
 
 }
 
@@ -257,4 +247,5 @@ searchCompanies();
 </script>
 
 </body>
+
 </html>
