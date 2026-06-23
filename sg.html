@@ -1,12 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Singapore Company Search</title>
+
+<style>
+
+body{
+    font-family:system-ui,sans-serif;
+    max-width:900px;
+    margin:40px auto;
+    padding:20px;
+}
+
+.controls{
+    display:flex;
+    gap:10px;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    font-size:16px;
+}
+
+button{
+    padding:12px 18px;
+    cursor:pointer;
+}
+
+#status{
+    margin-top:14px;
+    color:#666;
+}
+
+.card{
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:14px;
+    margin-top:12px;
+}
+
+.name{
+    font-weight:600;
+    margin-bottom:8px;
+}
+
+.small{
+    color:#666;
+    margin-top:4px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Singapore Company Search</h1>
+
+<div class="controls">
+
+<input
+id="query"
+placeholder="Search company name"
+/>
+
+<button id="searchBtn">
+Search
+</button>
+
+</div>
+
+<div id="status"></div>
+
+<div id="results"></div>
+
+<script>
+
+const DATASET =
+"d_3f960c10fed6145404ca7b821f263b87";
+
+let resourceId =
+null;
+
+async function getResourceId(){
+
+if(resourceId){
+return resourceId;
+}
+
+const url =
+`https://data.gov.sg/api/action/package_show?id=${DATASET}`;
+
+const res =
+await fetch(url);
+
+const json =
+await res.json();
+
+resourceId =
+json
+?.result
+?.resources?.[0]
+?.id;
+
+if(!resourceId){
+throw new Error(
+"Could not load dataset"
+);
+}
+
+return resourceId;
+
+}
+
 async function searchCompanies(){
 
-const q =
+const query =
 document
 .getElementById("query")
 .value
 .trim();
 
-if(!q) return;
+if(!query){
+
+status.textContent =
+"Enter company name";
+
+return;
+
+}
 
 status.textContent =
 "Searching...";
@@ -16,60 +142,53 @@ results.innerHTML =
 
 try{
 
+const id =
+await getResourceId();
+
+const filters =
+encodeURIComponent(
+JSON.stringify({
+entity_name:
+query
+})
+);
+
 const url =
-`https://data.gov.sg/api/action/package_show?id=d_3f960c10fed6145404ca7b821f263b87`;
-
-const meta =
-await fetch(url)
-.then(r=>r.json());
-
-const resource =
-meta
-.result
-.resources[0]
-.id;
-
-const searchUrl =
 `https://data.gov.sg/api/action/datastore_search`
 +
-`?resource_id=${resource}`
+`?resource_id=${id}`
 +
 `&limit=10`
 +
 `&fields=entity_name,uen,uen_status_desc,entity_type_desc`
 +
-`&filters=` +
-encodeURIComponent(
-JSON.stringify({
-entity_name:q
-})
-);
+`&filters=${filters}`;
 
 const res =
-await fetch(
-searchUrl
-);
+await fetch(url);
 
 const json =
 await res.json();
 
 const rows =
 json
-.result
-.records
+?.result
+?.records
 || [];
+
+status.textContent =
+`${rows.length} result(s)`;
 
 render(
 rows
 );
 
-status.textContent =
-`${rows.length} results`;
-
 }
-catch(e){
+catch(err){
 
-console.error(e);
+console.error(
+err
+);
 
 status.textContent =
 "Search failed";
@@ -80,43 +199,93 @@ status.textContent =
 
 function render(rows){
 
-results.innerHTML="";
+results.innerHTML =
+"";
 
-rows.forEach(row=>{
+if(
+rows.length === 0
+){
 
-const div =
-document.createElement(
+results.innerHTML =
+"<p>No results</p>";
+
+return;
+
+}
+
+for(
+const row
+of rows
+){
+
+const card =
+document
+.createElement(
 "div"
 );
 
-div.className =
+card.className =
 "card";
 
-div.innerHTML =
+card.innerHTML =
 `
-<strong>
-${row.entity_name}
-</strong>
+<div class="name">
+${row.entity_name ?? "-"}
+</div>
 
-<div>
+<div class="small">
 UEN:
-${row.uen}
+${row.uen ?? "-"}
 </div>
 
-<div>
+<div class="small">
 Status:
-${row.uen_status_desc}
+${row.uen_status_desc ?? "-"}
 </div>
 
-<div>
+<div class="small">
 Type:
-${row.entity_type_desc}
+${row.entity_type_desc ?? "-"}
 </div>
 `;
 
 results.appendChild(
-div);
+card
+);
+
+}
+
+}
+
+document
+.getElementById(
+"searchBtn"
+)
+.addEventListener(
+"click",
+searchCompanies
+);
+
+document
+.getElementById(
+"query"
+)
+.addEventListener(
+"keydown",
+e=>{
+
+if(
+e.key ===
+"Enter"
+){
+
+searchCompanies();
+
+}
 
 });
 
-}
+</script>
+
+</body>
+</html>
