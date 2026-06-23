@@ -227,19 +227,7 @@
     cursor: text;
   }
 
-  .drag-handle {
-    flex-shrink: 0;
-    cursor: grab;
-    color: var(--muted);
-    font-size: .85rem;
-    padding: 0 2px;
-    opacity: .5;
-    transition: opacity .12s;
-    user-select: none;
-  }
 
-  .drag-handle:hover  { opacity: 1; }
-  .drag-handle:active { cursor: grabbing; }
 
   .copy-btn {
     flex-shrink: 0;
@@ -554,20 +542,55 @@ function formatRecord(row) {
 ────────────────────────────────────────── */
 function fieldRow(label, value, withCopy) {
   const v = String(value);
-  const safeV = JSON.stringify(v);
-  const copyBtn = withCopy
-    ? `<button class="copy-btn" onclick="copyField(this, ${safeV})">Copy</button>`
-    : "";
-  const dragHandle = withCopy
-    ? `<span class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${safeV})" title="Drag value">⠿</span>`
-    : "";
-  return `
-    <div class="detail-field">
-      <label>${escHtml(label)}</label>
-      <span class="field-value">${escHtml(v)}</span>
-      ${dragHandle}
-      ${copyBtn}
-    </div>`;
+  const div = document.createElement("div");
+  div.className = "detail-field";
+
+  const lbl = document.createElement("label");
+  lbl.textContent = label;
+  div.appendChild(lbl);
+
+  const valSpan = document.createElement("span");
+  valSpan.className = "field-value";
+  valSpan.textContent = v;
+  div.appendChild(valSpan);
+
+  if (withCopy) {
+    valSpan.draggable = true;
+    valSpan.style.cursor = "grab";
+    valSpan.style.userSelect = "none";
+    valSpan.addEventListener("dragstart", e => {
+      e.dataTransfer.effectAllowed = "copy";
+      e.dataTransfer.setData("text/plain", v);
+    });
+    valSpan.addEventListener("dragend", () => {
+      valSpan.style.opacity = "";
+    });
+    valSpan.addEventListener("mousedown", () => {
+      valSpan.style.opacity = "0.6";
+    });
+    valSpan.addEventListener("mouseup", () => {
+      valSpan.style.opacity = "";
+    });
+
+    const btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.textContent = "Copy";
+    btn.addEventListener("click", () => {
+      function markCopied() {
+        btn.textContent = "Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 1500);
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(v).then(markCopied).catch(() => fallbackCopy(v, markCopied));
+      } else {
+        fallbackCopy(v, markCopied);
+      }
+    });
+    div.appendChild(btn);
+  }
+
+  return div;
 }
 
 async function loadDetails(uen, entityName, panel) {
@@ -617,7 +640,7 @@ async function loadDetails(uen, entityName, panel) {
       { label: "City",         value: "Singapore"                  },
     ].filter(f => notNA(f.value));
 
-    const keyHtml = keyFields.map(f => fieldRow(f.label, f.value, true)).join("");
+    // keyFields rendered directly below
 
     // ── Skip fields shown above or consumed into address ──
     const skipKeys = new Set([
@@ -629,15 +652,28 @@ async function loadDetails(uen, entityName, panel) {
     const restHtml = Object.entries(formatted)
       .filter(([k]) => !skipKeys.has(k))
       .filter(([, v]) => notNA(v))
-      .map(([k, v]) => fieldRow(humanLabel(k), v, false))
-      .join("");
+      .map(([k, v]) => fieldRow(humanLabel(k), v, false));
 
-    panel.innerHTML = `
-      <div class="detail-list">
-        ${statusHtml}
-        ${keyHtml}
-        ${restHtml ? `<hr class="detail-divider">${restHtml}` : ""}
-      </div>`;
+    const list = document.createElement("div");
+    list.className = "detail-list";
+
+    if (statusHtml) {
+      const s = document.createElement("div");
+      s.innerHTML = statusHtml;
+      list.appendChild(s.firstChild);
+    }
+
+    keyFields.forEach(f => list.appendChild(fieldRow(f.label, f.value, true)));
+
+    if (restHtml.length) {
+      const hr = document.createElement("hr");
+      hr.className = "detail-divider";
+      list.appendChild(hr);
+      restHtml.forEach(el => list.appendChild(el));
+    }
+
+    panel.innerHTML = "";
+    panel.appendChild(list);
 
   } catch (err) {
     console.error(err);
@@ -715,40 +751,18 @@ function setStatus(msg, isError = false) {
 }
 
 /* ──────────────────────────────────────────
-   DRAG HELPER
-────────────────────────────────────────── */
-function onDragStart(event, text) {
-  event.dataTransfer.effectAllowed = "copy";
-  event.dataTransfer.setData("text/plain", text);
-  event.dataTransfer.setData("text/html", text);
-}
-
-/* ──────────────────────────────────────────
    COPY HELPER
 ────────────────────────────────────────── */
-function copyField(btn, text) {
-  function markCopied() {
-    btn.textContent = "Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "Copy";
-      btn.classList.remove("copied");
-    }, 1500);
-  }
-
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(markCopied);
-  } else {
-    // Fallback for file:// or non-HTTPS
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.cssText = "position:fixed;opacity:0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    markCopied();
-  }
+function fallbackCopy(text, cb) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(ta);
+  if (ok && cb) cb();
 }
 
 /* ──────────────────────────────────────────
