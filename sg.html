@@ -192,25 +192,14 @@
   }
 
   .detail-status {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 5px 0;
-    margin-bottom: 4px;
-  }
-
-  .detail-status::before {
-    content: "";
-    flex: 0 0 150px;
-  }
-
-  .detail-status span {
+    text-align: left;
     font-weight: 700;
     font-size: .95rem;
+    margin-bottom: 8px;
   }
 
-  .detail-status.live  span { color: #16a34a; }
-  .detail-status.other span { color: var(--accent); }
+  .detail-status.live  { color: #16a34a; }
+  .detail-status.other { color: var(--accent); }
 
   .detail-field {
     display: flex;
@@ -226,7 +215,8 @@
     text-transform: uppercase;
     letter-spacing: .05em;
     color: var(--muted);
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
   }
 
   .detail-field .field-value {
@@ -607,7 +597,7 @@ async function loadDetails(uen, entityName, panel) {
     const statusVal = row.entity_status_description ?? row.uen_status_desc ?? "";
     const isLive    = statusVal.toLowerCase().includes("live");
     const statusHtml = notNA(statusVal)
-      ? `<div class="detail-status ${isLive ? "live" : "other"}"><span>${escHtml(statusVal)}</span></div>`
+      ? `<div class="detail-status ${isLive ? "live" : "other"}">${escHtml(statusVal)}</div>`
       : "";
 
     // ── Key fields (with copy buttons) ──
