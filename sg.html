@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Singapore Company Search</title>
+<title>Singapore Company Search (Stable)</title>
 
 <style>
 body{
@@ -71,22 +71,14 @@ button{
 
 /*
 ========================================================
-STAGE 1 DATASET (FAST SEARCH)
+CONFIG
 ========================================================
 */
 const SEARCH_DATASET =
 "d_3f960c10fed6145404ca7b821f263b87";
 
-/*
-========================================================
-STAGE 2 DATASET (ACRA FULL DETAIL)
-IMPORTANT:
-Dette er den mest stabile single-dataset lookup
-========================================================
-*/
 const DETAIL_DATASET =
-"d_8575e84912df3c28995b8e6e0e05205a"; 
-// ACRA Information (main detailed register)
+"d_8575e84912df3c28995b8e6e0e05205a";
 
 /*
 ========================================================
@@ -97,7 +89,7 @@ let current = [];
 
 /*
 ========================================================
-SEARCH
+SEARCH (LIMIT 10 enforced server-side)
 ========================================================
 */
 async function searchCompanies(){
@@ -114,13 +106,13 @@ try{
 
 const search =
 encodeURIComponent(JSON.stringify({
-entity_name:q
+entity_name: q
 }));
 
 const url =
 `https://data.gov.sg/api/action/datastore_search`
 + `?resource_id=${SEARCH_DATASET}`
-+ `&limit=50`
++ `&limit=10`
 + `&q=${search}`;
 
 const res = await fetch(url);
@@ -128,13 +120,11 @@ const json = await res.json();
 
 let rows = json?.result?.records || [];
 
-rows = rows
-.filter(r =>
+rows = rows.filter(r =>
 (r.entity_name || "")
 .toLowerCase()
 .includes(q.toLowerCase())
-)
-.slice(0,10);
+);
 
 current = rows;
 
@@ -153,7 +143,7 @@ status.textContent = "Search failed";
 
 /*
 ========================================================
-RENDER RESULTS
+RENDER LIST
 ========================================================
 */
 function render(){
@@ -189,7 +179,7 @@ results.appendChild(div);
 
 /*
 ========================================================
-DETAIL LOOKUP (STABLE SINGLE DATASET)
+DETAIL LOOKUP (NO A-Z LOGIC, SINGLE SOURCE OF TRUTH)
 ========================================================
 */
 async function loadDetails(uen,index){
@@ -198,7 +188,6 @@ const target =
 document.getElementById(`detail-${index}`);
 
 if(!target) return;
-
 if(target.dataset.loaded) return;
 
 target.innerHTML = "Loading details...";
@@ -217,8 +206,26 @@ const url =
 const res = await fetch(url);
 const json = await res.json();
 
-const row =
-json?.result?.records?.[0];
+let row = json?.result?.records?.[0];
+
+/*
+========================================================
+FALLBACK (important for dataset coverage gaps)
+========================================================
+*/
+if(!row){
+
+const fallbackUrl =
+`https://data.gov.sg/api/action/datastore_search`
++ `?resource_id=${SEARCH_DATASET}`
++ `&limit=1`
++ `&filters=${filters}`;
+
+const fallbackRes = await fetch(fallbackUrl);
+const fallbackJson = await fallbackRes.json();
+
+row = fallbackJson?.result?.records?.[0];
+}
 
 if(!row){
 target.innerHTML = "No detailed record";
@@ -229,21 +236,22 @@ target.dataset.loaded = "1";
 
 /*
 ========================================================
-AUTO RENDER ALL FIELDS (FUTURE-PROOF)
+AUTO RENDER ALL FIELDS (future-proof)
 ========================================================
 */
 const html =
 Object.entries(row)
-.map(([k,v])=>{
+.filter(([k]) => k !== "_id")
+.map(([k,v]) => {
 
 const label =
 k.replaceAll("_"," ")
  .replace(/\b\w/g,m=>m.toUpperCase());
 
 return `
-<div style="margin-bottom:8px;">
-  <div><b>${label}</b></div>
-  <div>${v ?? "-"}</div>
+<div style="margin-bottom:8px">
+<b>${label}</b><br>
+${v ?? "-"}
 </div>
 `;
 
