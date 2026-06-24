@@ -46,6 +46,8 @@ export default {
       headers: {
         ...corsHeaders,
         "Content-Type": upstream.headers.get("Content-Type") || "application/json",
+        "X-Debug-Target": targetUrl,
+        "X-Debug-Status": String(upstream.status),
       },
     });
   },
