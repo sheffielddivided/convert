@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Svenske selskapsopplysninger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f9; color: #222; padding: 24px; }
+  h1 { font-size: 1.4rem; margin-bottom: 20px; color: #333; }
+
+  .search-bar { display: flex; gap: 8px; margin-bottom: 28px; max-width: 500px; }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; font-size: 1rem;
+    border: 1px solid #ccc; border-radius: 6px;
+  }
+  .search-bar button {
+    padding: 10px 20px; background: #1a73e8; color: #fff;
+    border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;
+  }
+  .search-bar button:hover { background: #1558b0; }
+
+  #results-list { max-width: 700px; margin-bottom: 24px; }
+  .result-item {
+    background: #fff; border: 1px solid #ddd; border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 8px; cursor: pointer;
+  }
+  .result-item:hover { border-color: #1a73e8; background: #f0f4ff; }
+  .result-item .ri-name { font-weight: 600; }
+  .result-item .ri-meta { font-size: 0.85rem; color: #666; margin-top: 2px; }
+
+  #company-cards { max-width: 700px; }
+
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }
+  .card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid #eee;
+  }
+  .card-header .icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: #fff; flex-shrink: 0;
+  }
+  .card-header h2 { font-size: 1rem; font-weight: 600; color: #333; }
+  .card-body { padding: 14px 16px; }
+
+  .field-row { display: flex; padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { width: 175px; flex-shrink: 0; color: #666; font-weight: 500; }
+  .field-value { flex: 1; color: #222; }
+  .field-value a { color: #1a73e8; text-decoration: none; }
+  .field-value a:hover { text-decoration: underline; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 600; margin-left: 6px;
+  }
+  .badge-green { background: #e6f4ea; color: #1e7e34; }
+  .badge-red { background: #fce8e6; color: #c5221f; }
+  .badge-gray { background: #f1f3f4; color: #666; }
+
+  .sni-list { list-style: none; padding: 0; }
+  .sni-list li { padding: 3px 0; font-size: 0.88rem; }
+  .sni-list li .sni-code { color: #888; margin-right: 6px; font-family: monospace; }
+
+  #error-msg { color: #c5221f; font-size: 0.9rem; margin-bottom: 12px; }
+  #loading { color: #666; font-size: 0.9rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Svenske selskapsopplysninger</h1>
+
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="Organisasjonsnummer eller navn" />
+  <button onclick="doSearch()">Søk</button>
+</div>
+
+<div id="error-msg"></div>
+<div id="loading"></div>
+<div id="results-list"></div>
+<div id="company-cards"></div>
+
+<script>
+const BD_PROXY = "https://bolagsdata-proxy.batil-kjekken.workers.dev";
+
+function setLoading(msg) { document.getElementById("loading").textContent = msg || ""; }
+function setError(msg)   { document.getElementById("error-msg").textContent = msg || ""; }
+function clearCards()    { document.getElementById("company-cards").innerHTML = ""; }
+function clearResults()  { document.getElementById("results-list").innerHTML = ""; }
+
+async function apiFetch(path) {
+  const res = await fetch(BD_PROXY + path, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
+function fieldRow(label, value) {
+  if (value === undefined || value === null || value === "") return "";
+  return `<div class="field-row"><span class="field-label">${label}</span><span class="field-value">${value}</span></div>`;
+}
+
+function fieldRowLink(label, url, text) {
+  if (!url) return "";
+  return fieldRow(label, `<a href="${url}" target="_blank" rel="noopener">${text || url} ↗</a>`);
+}
+
+function statusBadge(isActive) {
+  return isActive
+    ? '<span class="badge badge-green">Aktiv</span>'
+    : '<span class="badge badge-red">Inaktiv</span>';
+}
+
+function card(iconBg, iconEmoji, title, bodyHtml) {
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="icon" style="background:${iconBg}">${iconEmoji}</div>
+        <h2>${title}</h2>
+      </div>
+      <div class="card-body">${bodyHtml || '<span style="color:#999;font-size:.9rem">Ingen data</span>'}</div>
+    </div>`;
+}
+
+async function doSearch() {
+  const q = document.getElementById("search-input").value.trim();
+  if (!q) return;
+  setError(""); clearCards(); clearResults(); setLoading("Søker…");
+
+  // Swedish org number: 10 digits possibly with dash
+  const isOrgNr = /^\d{6}-?\d{4}$/.test(q) || /^\d{10}$/.test(q);
+  if (isOrgNr) {
+    const normalized = q.replace("-", "");
+    setLoading("");
+    await showCompany(normalized);
+  } else {
+    try {
+      const data = await apiFetch(`/search?q=${encodeURIComponent(q)}`);
+      setLoading("");
+      showResults(data.results || []);
+    } catch (e) {
+      setLoading("");
+      setError("Søkefeil: " + e.message);
+    }
+  }
+}
+
+function showResults(results) {
+  const el = document.getElementById("results-list");
+  if (!results.length) { el.innerHTML = '<p style="color:#666;font-size:.9rem">Ingen treff.</p>'; return; }
+  el.innerHTML = results.map(r => `
+    <div class="result-item" onclick="selectResult('${r.orgNumber}')">
+      <div class="ri-name">${r.legalName || "—"}</div>
+      <div class="ri-meta">${r.orgNumber || ""} · ${r.city || ""} · ${r.status || ""}</div>
+    </div>`).join("");
+}
+
+function selectResult(orgNumber) {
+  clearResults();
+  showCompany(orgNumber);
+}
+
+async function showCompany(orgNumber) {
+  clearCards(); setError(""); setLoading("Henter selskapsdata…");
+
+  try {
+    const [basic, address, registrations, classification, financials, ownership, names] = await Promise.allSettled([
+      apiFetch(`/company/${orgNumber}`),
+      apiFetch(`/company/${orgNumber}/address`),
+      apiFetch(`/company/${orgNumber}/registrations`),
+      apiFetch(`/company/${orgNumber}/classification`),
+      apiFetch(`/company/${orgNumber}/financials`),
+      apiFetch(`/company/${orgNumber}/ownership`),
+      apiFetch(`/company/${orgNumber}/names`),
+    ]);
+
+    setLoading("");
+    const cards = [];
+
+    // ---- Company card ----
+    const b = basic.status === "fulfilled" ? basic.value : null;
+    const a = address.status === "fulfilled" ? address.value : null;
+    const nm = names.status === "fulfilled" ? names.value : null;
+    {
+      let rows = "";
+      const companyName = b?.legalName || nm?.legalName || "—";
+      const isActive = b?.isActive;
+
+      rows += fieldRow("Navn", companyName + (isActive !== undefined ? statusBadge(isActive) : ""));
+
+      if (nm?.aliases?.length) {
+        rows += fieldRow("Andre navn", nm.aliases.join(", "));
+      }
+
+      rows += fieldRow("Organisasjonsnummer", orgNumber);
+      rows += fieldRowLink(
+        "Allabolag ↗",
+        `https://www.allabolag.se/${orgNumber.replace("-","")}`,
+        "Åpne på Allabolag"
+      );
+
+      if (b?.legalForm?.description) {
+        rows += fieldRow("Selskapsform", b.legalForm.description + (b.legalForm.code ? ` (${b.legalForm.code})` : ""));
+      }
+
+      if (a) {
+        const pa = a.postalAddress;
+        if (pa) {
+          if (pa.street) rows += fieldRow("Adresse", pa.street);
+          if (pa.zip || pa.city) rows += fieldRow("Poststed", [pa.zip, pa.city].filter(Boolean).join(" "));
+          if (pa.country) rows += fieldRow("Land", pa.country);
+        }
+        const va = a.visitingAddress;
+        if (va && (va.street || va.city)) {
+          const vatxt = [va.street, va.zip, va.city].filter(Boolean).join(", ");
+          rows += fieldRow("Besøksadresse", vatxt);
+        }
+        if (a.seat) {
+          if (a.seat.municipality) rows += fieldRow("Kommune", a.seat.municipality);
+          if (a.seat.county) rows += fieldRow("Fylke", a.seat.county);
+        }
+        if (a.phone) rows += fieldRow("Telefon", a.phone);
+        if (a.email) rows += fieldRow("E-post", `<a href="mailto:${a.email}">${a.email}</a>`);
+      }
+
+      cards.push(card("#4285f4", "🏢", "Selskapsopplysninger", rows));
+    }
+
+    // ---- Registrations card ----
+    const reg = registrations.status === "fulfilled" ? registrations.value : null;
+    if (reg) {
+      let rows = "";
+      if (reg.registrationDate) rows += fieldRow("Stiftelsesdato", reg.registrationDate);
+      if (reg.employer !== undefined) rows += fieldRow("Arbeidsgiver", reg.employer ? "Ja" : "Nei");
+      if (reg.fTax !== undefined) rows += fieldRow("F-skatt", reg.fTax ? "Ja" : "Nei");
+      if (reg.vat) {
+        rows += fieldRow("MVA-registrert", reg.vat.registered ? "Ja" : "Nei");
+        if (reg.vat.text) rows += fieldRow("MVA-status", reg.vat.text);
+      }
+      if (rows) cards.push(card("#0f9d58", "📋", "Registreringer", rows));
+    }
+
+    // ---- Classification card ----
+    const cls = classification.status === "fulfilled" ? classification.value : null;
+    if (cls) {
+      let rows = "";
+      if (cls.sector) rows += fieldRow("Sektor", cls.sector);
+      if (cls.size?.staff) rows += fieldRow("Antall ansatte", cls.size.staff);
+      if (cls.sniCodes?.length) {
+        const list = cls.sniCodes.map(s =>
+          `<li><span class="sni-code">${s.code}</span>${s.description}${s.primary ? ' <span class="badge badge-green" style="font-size:.7rem">Primær</span>' : ""}</li>`
+        ).join("");
+        rows += fieldRow("SNI-koder", `<ul class="sni-list">${list}</ul>`);
+      }
+      if (rows) cards.push(card("#ff6d00", "🏭", "Bransje / klassifisering", rows));
+    }
+
+    // ---- Financials card ----
+    const fin = financials.status === "fulfilled" ? financials.value : null;
+    if (fin) {
+      let rows = "";
+      if (fin.currency) rows += fieldRow("Valuta", fin.currency);
+      if (fin.revenueRange) rows += fieldRow("Omsetning", fin.revenueRange);
+      if (fin.revenueYear) rows += fieldRow("Regnskapsår", fin.revenueYear);
+      if (rows) cards.push(card("#e91e63", "💰", "Økonomi", rows));
+    }
+
+    // ---- Ownership card ----
+    const own = ownership.status === "fulfilled" ? ownership.value : null;
+    if (own) {
+      let rows = "";
+      if (own.ownerCategory) rows += fieldRow("Eierkategori", own.ownerCategory);
+      if (own.foreignOwnership !== undefined) rows += fieldRow("Utenlandsk eierskap", own.foreignOwnership ? "Ja" : "Nei");
+      if (own.genderDistribution) {
+        const m = own.genderDistribution.men;
+        const w = own.genderDistribution.women;
+        if (m !== undefined || w !== undefined) {
+          rows += fieldRow("Kjønnsfordeling", `Menn: ${m ?? "—"}% · Kvinner: ${w ?? "—"}%`);
+        }
+      }
+      if (rows) cards.push(card("#9c27b0", "👥", "Eierskap", rows));
+    }
+
+    document.getElementById("company-cards").innerHTML = cards.join("");
+
+  } catch (e) {
+    setLoading("");
+    setError("Feil: " + e.message);
+  }
+}
+
+// URL param support
+document.getElementById("search-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch();
+});
+
+const _urlSearch = new URLSearchParams(location.search).get("search");
+if (_urlSearch) {
+  document.getElementById("search-input").value = _urlSearch;
+  doSearch();
+}
+</script>
+</body>
+</html>
