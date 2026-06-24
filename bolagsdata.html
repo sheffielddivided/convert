@@ -216,8 +216,8 @@ async function showCompany(orgNumber) {
           rows += fieldRow("Besøksadresse", vatxt);
         }
         if (a.seat) {
-          if (a.seat.municipality) rows += fieldRow("Kommune", a.seat.municipality);
-          if (a.seat.county) rows += fieldRow("Fylke", a.seat.county);
+          if (a.seat.municipality?.description) rows += fieldRow("Kommune", a.seat.municipality.description);
+          if (a.seat.county?.description) rows += fieldRow("Fylke", a.seat.county.description);
         }
         if (a.phone) rows += fieldRow("Telefon", a.phone);
         if (a.email) rows += fieldRow("E-post", `<a href="mailto:${a.email}">${a.email}</a>`);
@@ -231,12 +231,9 @@ async function showCompany(orgNumber) {
     if (reg) {
       let rows = "";
       if (reg.registrationDate) rows += fieldRow("Stiftelsesdato", reg.registrationDate);
-      if (reg.employer !== undefined) rows += fieldRow("Arbeidsgiver", reg.employer ? "Ja" : "Nei");
-      if (reg.fTax !== undefined) rows += fieldRow("F-skatt", reg.fTax ? "Ja" : "Nei");
-      if (reg.vat) {
-        rows += fieldRow("MVA-registrert", reg.vat.registered ? "Ja" : "Nei");
-        if (reg.vat.text) rows += fieldRow("MVA-status", reg.vat.text);
-      }
+      if (reg.employer?.text) rows += fieldRow("Arbeidsgiver", reg.employer.text);
+      if (reg.fTax?.text) rows += fieldRow("F-skatt", reg.fTax.text);
+      if (reg.vat?.text) rows += fieldRow("MVA", reg.vat.text);
       if (rows) cards.push(card("#0f9d58", "📋", "Registreringer", rows));
     }
 
@@ -244,8 +241,8 @@ async function showCompany(orgNumber) {
     const cls = classification.status === "fulfilled" ? classification.value : null;
     if (cls) {
       let rows = "";
-      if (cls.sector) rows += fieldRow("Sektor", cls.sector);
-      if (cls.size?.staff) rows += fieldRow("Antall ansatte", cls.size.staff);
+      if (cls.sector?.description) rows += fieldRow("Sektor", cls.sector.description);
+      if (cls.size?.staff?.description) rows += fieldRow("Antall ansatte", cls.size.staff.description);
       if (cls.sniCodes?.length) {
         const list = cls.sniCodes.map(s =>
           `<li><span class="sni-code">${s.code}</span>${s.description}${s.primary ? ' <span class="badge badge-green" style="font-size:.7rem">Primær</span>' : ""}</li>`
@@ -260,7 +257,7 @@ async function showCompany(orgNumber) {
     if (fin) {
       let rows = "";
       if (fin.currency) rows += fieldRow("Valuta", fin.currency);
-      if (fin.revenueRange) rows += fieldRow("Omsetning", fin.revenueRange);
+      if (fin.revenueRange?.description) rows += fieldRow("Omsetning", fin.revenueRange.description);
       if (fin.revenueYear) rows += fieldRow("Regnskapsår", fin.revenueYear);
       if (rows) cards.push(card("#e91e63", "💰", "Økonomi", rows));
     }
@@ -269,13 +266,13 @@ async function showCompany(orgNumber) {
     const own = ownership.status === "fulfilled" ? ownership.value : null;
     if (own) {
       let rows = "";
-      if (own.ownerCategory) rows += fieldRow("Eierkategori", own.ownerCategory);
+      if (own.ownerCategory?.description) rows += fieldRow("Eierkategori", own.ownerCategory.description);
       if (own.foreignOwnership !== undefined) rows += fieldRow("Utenlandsk eierskap", own.foreignOwnership ? "Ja" : "Nei");
       if (own.genderDistribution) {
         const m = own.genderDistribution.men;
         const w = own.genderDistribution.women;
-        if (m !== undefined || w !== undefined) {
-          rows += fieldRow("Kjønnsfordeling", `Menn: ${m ?? "—"}% · Kvinner: ${w ?? "—"}%`);
+        if (m !== "" && w !== "" && (m || w)) {
+          rows += fieldRow("Kjønnsfordeling", `Menn: ${m}% · Kvinner: ${w}%`);
         }
       }
       if (rows) cards.push(card("#9c27b0", "👥", "Eierskap", rows));
