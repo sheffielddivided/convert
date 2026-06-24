@@ -4,7 +4,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1",
 ];
 
-const TARGET_BASE = "https://bdapi.012.se/api";
+const TARGET_BASE = "https://bdapi.012.se";
 
 export default {
   async fetch(request, env) {
@@ -46,8 +46,6 @@ export default {
       headers: {
         ...corsHeaders,
         "Content-Type": upstream.headers.get("Content-Type") || "application/json",
-        "X-Debug-Target": targetUrl,
-        "X-Debug-Status": String(upstream.status),
       },
     });
   },
