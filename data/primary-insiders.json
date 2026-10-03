@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-02T11:52:56.713Z",
+  "updated": "2026-10-03T11:05:51.123Z",
   "companies": [
     {
       "isin": "NO0010345853",
@@ -11,6 +11,13 @@
           "SURNAME\nUNSORTED": "Arif",
           "FIRST NAME\nUNSORTED": "Talar",
           "TITLE \nUNSORTED": "SVP Ula",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "ARVESEN",
+          "FIRST NAME\nUNSORTED": "ØYSTEIN",
+          "TITLE \nUNSORTED": "SVP Optimise",
           "POSITION\nUNSORTED": ""
         },
         {
@@ -54,13 +61,6 @@
           "FIRST NAME\nUNSORTED": "Ani",
           "TITLE \nUNSORTED": "",
           "POSITION\nUNSORTED": "Employee-elected deputy member"
-        },
-        {
-          "COMPANY\nUNSORTED": "Aker BP ASA",
-          "SURNAME\nUNSORTED": "Dolve",
-          "FIRST NAME\nUNSORTED": "Ine",
-          "TITLE \nUNSORTED": "SVP Alvheim",
-          "POSITION\nUNSORTED": ""
         },
         {
           "COMPANY\nUNSORTED": "Aker BP ASA",
@@ -148,6 +148,13 @@
         },
         {
           "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "LYNG",
+          "FIRST NAME\nUNSORTED": "HANS",
+          "TITLE \nUNSORTED": "Asset Manager Alvheim",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
           "SURNAME\nUNSORTED": "Mogstad",
           "FIRST NAME\nUNSORTED": "Marte",
           "TITLE \nUNSORTED": "SVP PRO Growth",
@@ -158,6 +165,13 @@
           "SURNAME\nUNSORTED": "Molvig",
           "FIRST NAME\nUNSORTED": "Ole-Johan",
           "TITLE \nUNSORTED": "SVP Valhall",
+          "POSITION\nUNSORTED": ""
+        },
+        {
+          "COMPANY\nUNSORTED": "Aker BP ASA",
+          "SURNAME\nUNSORTED": "NYSTEIN",
+          "FIRST NAME\nUNSORTED": "ROLF",
+          "TITLE \nUNSORTED": "SVP Transformation",
           "POSITION\nUNSORTED": ""
         },
         {
