@@ -161,6 +161,24 @@ var interestLoaded = false;
 var CF_PROXY = 'https://fancy-haze-b963.batil-kjekken.workers.dev/?url=';
 var inflationLoaded = false;
 
+// Data is fetched by a daily GitHub Action (scrapers/nb-data.js) into data/nb/*.json
+var snapshotCache = {};
+function loadSnapshot(name) {
+  if (!snapshotCache[name]) {
+    snapshotCache[name] = fetch('data/nb/' + name + '.json').then(function(r) {
+      if (!r.ok) throw new Error('Failed: ' + name);
+      return r.json();
+    }).catch(function(e) { delete snapshotCache[name]; throw e; });
+  }
+  return snapshotCache[name];
+}
+// series = [[YYYY-MM-DD, value], ...] sorted ascending
+function sliceSeries(series, days) {
+  var start = new Date(); start.setDate(start.getDate() - days);
+  var sp = start.toISOString().slice(0, 10);
+  return (series || []).filter(function(o) { return o[0] >= sp; });
+}
+
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
@@ -190,29 +208,15 @@ var ALL_CUR = (function() {
   } catch(e) {}
   return DEFAULT_CUR.slice();
 })();
-var BASE_EXR = 'https://data.norges-bank.no/api/data/EXR/B.';
-
-function parseSpotResponse(json) {
-  var ds = json.data.dataSets[0];
-  var st = json.data.structure;
-  var seriesKey = Object.keys(ds.series)[0];
-  var obs = ds.series[seriesKey].observations;
-  var obsKey = Object.keys(obs)[0];
-  var value = parseFloat(obs[obsKey][0]);
-  var dateValues = st.dimensions.observation[0].values;
-  var date = dateValues[parseInt(obsKey)].id;
-  var name = st.dimensions.series[1].values[0].name;
-  return { value: value, date: date, name: name };
-}
 
 var ratesCache = {};
 
 async function fetchRate(cur) {
-  var url = BASE_EXR + cur + '.NOK.SP?format=sdmx-json&lastNObservations=1&locale=en';
-  var res = await fetch(url);
-  if (!res.ok) throw new Error('Failed: ' + cur);
-  var json = await res.json();
-  return parseSpotResponse(json);
+  var snap = await loadSnapshot('exchange');
+  var c = snap.currencies && snap.currencies[cur];
+  if (!c || !c.series || !c.series.length) throw new Error('Failed: ' + cur);
+  var last = c.series[c.series.length - 1];
+  return { value: last[1], date: last[0], name: c.name || cur };
 }
 
 async function loadCurrencies() {
@@ -391,30 +395,10 @@ var cbHistCache = null;
 async function loadCbComparison(days) {
   cbHistDays = days;
   if (cbHistCache) { renderCbComparison(days); return; }
-  var farStart = new Date(); farStart.setFullYear(farStart.getFullYear() - 21);
-  var sp = farStart.toISOString().slice(0, 10);
-  var spMonth = sp.slice(0, 7);
   try {
-    var [nbRes, fedRes, ecbRes] = await Promise.all([
-      fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&startPeriod=' + sp),
-      fetch(CF_PROXY + encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=178b6a436dc612d9cf52e4fbc2b402ff&observation_start=' + sp + '&file_type=json')).catch(function(){return null;}),
-      fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp).catch(function(){return null;})
-    ]);
-    var nbJson = await nbRes.json();
-    var nbDs = nbJson.data.dataSets[0]; var nbSk = Object.keys(nbDs.series)[0];
-    var nbObs = nbDs.series[nbSk].observations;
-    var nbDates = nbJson.data.structure.dimensions.observation[0].values;
-    var nbData = Object.keys(nbObs).map(function(k){ return {date: nbDates[parseInt(k)].id, value: parseFloat(nbObs[k][0])}; }).sort(function(a,b){return a.date<b.date?-1:1;});
-    var fedData = [];
-    try { var fj = await fedRes.json(); fedData = (fj.observations||[]).filter(function(o){return o.value!=='.';}).map(function(o){return {date:o.date,value:parseFloat(o.value)};}); } catch(e) {}
-    var ecbData = [];
-    try {
-      var ecbJson = await ecbRes.json();
-      var ecbDs = ecbJson.dataSets[0]; var ecbSk = Object.keys(ecbDs.series)[0];
-      var ecbObs = ecbDs.series[ecbSk].observations;
-      var ecbDates = ecbJson.structure.dimensions.observation[0].values;
-      ecbData = Object.keys(ecbObs).map(function(k){return {date:ecbDates[parseInt(k)].id,value:ecbObs[k][0]};}).sort(function(a,b){return a.date<b.date?-1:1;});
-    } catch(e) {}
+    var snap = await loadSnapshot('interest');
+    function toObjs(series) { return (series || []).map(function(o){ return {date:o[0], value:o[1]}; }); }
+    var nbData = toObjs(snap.policy), fedData = toObjs(snap.fed), ecbData = toObjs(snap.ecb);
     cbHistCache = {nb: nbData, fed: fedData, ecb: ecbData};
     renderCbComparison(days);
   } catch(e) { var s = document.getElementById('cbCompStats'); if(s) s.innerHTML = '<div class="error-msg">Failed to load comparison data</div>'; }
@@ -516,14 +500,11 @@ async function loadFedHistorical(days) {
   var stats = document.getElementById('chartStats');
   if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
   stats.innerHTML = '';
-  var start = new Date(); start.setDate(start.getDate() - days);
-  var sp = start.toISOString().slice(0, 10);
   try {
-    var res = await fetch(CF_PROXY + encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=178b6a436dc612d9cf52e4fbc2b402ff&observation_start=' + sp + '&file_type=json'));
-    var json = await res.json();
-    var obs = (json.observations||[]).filter(function(o){return o.value!=='.';});
-    var labels = obs.map(function(o){return o.date;});
-    var values = obs.map(function(o){return parseFloat(o.value);});
+    var snap = await loadSnapshot('interest');
+    var obs = sliceSeries(snap.fed, days);
+    var labels = obs.map(function(o){return o[0];});
+    var values = obs.map(function(o){return o[1];});
     histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#dc2626', 'rgba(220,38,38,0.18)');
     makeRateStats(stats, values);
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load Fed data</div>'; }
@@ -534,17 +515,11 @@ async function loadEcbHistorical(days) {
   var stats = document.getElementById('chartStats');
   if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
   stats.innerHTML = '';
-  var start = new Date(); start.setDate(start.getDate() - days);
-  var sp = start.toISOString().slice(0, 10);
   try {
-    var res = await fetch('https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + sp);
-    var json = await res.json();
-    var ds = json.dataSets[0]; var sk = Object.keys(ds.series)[0];
-    var objs = ds.series[sk].observations;
-    var timeVals = json.structure.dimensions.observation[0].values;
-    var keys = Object.keys(objs).sort(function(a,b){return parseInt(a)-parseInt(b);});
-    var labels = keys.map(function(k) { return timeVals[parseInt(k)].id; });
-    var values = keys.map(function(k) { return objs[k][0]; });
+    var snap = await loadSnapshot('interest');
+    var obs = sliceSeries(snap.ecb, days);
+    var labels = obs.map(function(o){return o[0];});
+    var values = obs.map(function(o){return o[1];});
     histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, '#1d4ed8', 'rgba(29,78,216,0.18)');
     makeRateStats(stats, values);
   } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load ECB data</div>'; }
@@ -555,20 +530,10 @@ async function loadHistorical(cur, days) {
   var stats = document.getElementById('chartStats');
   if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
   stats.innerHTML = '<div class="loading" style="width:100%;padding:20px"><div class="spinner"></div></div>';
-  var end = new Date(); var start = new Date();
-  start.setDate(end.getDate() - days);
-  var sp = start.toISOString().slice(0,10);
-  var ep = end.toISOString().slice(0,10);
-  var url = BASE_EXR + cur + '.NOK.SP?format=sdmx-json&startPeriod=' + sp + '&endPeriod=' + ep + '&locale=en';
   try {
-    var res = await fetch(url); var json = await res.json();
-    var ds = json.data.dataSets[0]; var st = json.data.structure;
-    var seriesKey = Object.keys(ds.series)[0];
-    var observations = ds.series[seriesKey].observations;
-    var dateValues = st.dimensions.observation[0].values;
-    var dates = []; var values = [];
-    var keys = Object.keys(observations).map(Number).sort(function(a,b){return a-b;});
-    for (var i = 0; i < keys.length; i++) { dates.push(dateValues[keys[i]].id); values.push(parseFloat(observations[keys[i]][0])); }
+    var snap = await loadSnapshot('exchange');
+    var obs = sliceSeries(snap.currencies[cur].series, days);
+    var dates = obs.map(function(o){return o[0];}); var values = obs.map(function(o){return o[1];});
     var minVal = Math.min.apply(null, values); var maxVal = Math.max.apply(null, values);
     var curVal = values[values.length - 1]; var firstVal = values[0];
     var change = curVal - firstVal; var changePct = ((change / firstVal) * 100).toFixed(2);
@@ -592,19 +557,10 @@ async function loadPolicyRateHistorical(days) {
   var stats = document.getElementById('chartStats');
   if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
   stats.innerHTML = '<div class="loading" style="width:100%;padding:20px"><div class="spinner"></div></div>';
-  var end = new Date(); var start = new Date();
-  start.setDate(end.getDate() - days);
-  var sp = start.toISOString().slice(0,10); var ep = end.toISOString().slice(0,10);
-  var url = 'https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&startPeriod=' + sp + '&endPeriod=' + ep + '&locale=en';
   try {
-    var res = await fetch(url); var json = await res.json();
-    var ds = json.data.dataSets[0]; var st = json.data.structure;
-    var seriesKey = Object.keys(ds.series)[0];
-    var observations = ds.series[seriesKey].observations;
-    var dateValues = st.dimensions.observation[0].values;
-    var dates = []; var values = [];
-    var keys = Object.keys(observations).map(Number).sort(function(a,b){return a-b;});
-    for (var i = 0; i < keys.length; i++) { dates.push(dateValues[keys[i]].id); values.push(parseFloat(observations[keys[i]][0])); }
+    var snap = await loadSnapshot('interest');
+    var obs = sliceSeries(snap.policy, days);
+    var dates = obs.map(function(o){return o[0];}); var values = obs.map(function(o){return o[1];});
     var minVal = Math.min.apply(null, values); var maxVal = Math.max.apply(null, values);
     var curVal = values[values.length - 1]; var firstVal = values[0];
     var change = curVal - firstVal; var lineColor = change <= 0 ? '#00c853' : '#ff3d57';
@@ -669,64 +625,15 @@ async function loadInterest() {
   var container = document.getElementById('interestContent');
   container.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching interest rates\u2026</span></div>';
   try {
-    var _sixMoAgo = new Date(); _sixMoAgo.setMonth(_sixMoAgo.getMonth()-6);
-    var _ecbCurUrl = 'https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=jsondata&startPeriod=' + _sixMoAgo.toISOString().slice(0,10);
-    var [prRes, fedRes, ecbRes] = await Promise.all([
-      fetch('https://data.norges-bank.no/api/data/IR/B.KPRA.SD.?format=sdmx-json&lastNObservations=1&locale=no'),
-      fetch(CF_PROXY + encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=178b6a436dc612d9cf52e4fbc2b402ff&sort_order=desc&limit=1&file_type=json')).catch(function(){return null;}),
-      fetch(_ecbCurUrl).catch(function(){return null;})
-    ]);
-    var prJson = await prRes.json();
-    var fedRate = null, fedDate = '';
-    try {
-      var fedJson = await fedRes.json(); var fo = (fedJson.observations||[])[0];
-      if (fo) { fedRate = parseFloat(fo.value); fedDate = fo.date; }
-    } catch(e) {}
-    var ecbRate = null, ecbDate = '';
-    try {
-      var ecbJson = await ecbRes.json();
-      var ecbDs = ecbJson.dataSets[0]; var ecbSk = Object.keys(ecbDs.series)[0];
-      var ecbObs = ecbDs.series[ecbSk].observations;
-      var ecbKeys = Object.keys(ecbObs).sort(function(a,b){return parseInt(a)-parseInt(b);});
-      var ecbOk = ecbKeys[ecbKeys.length-1];
-      ecbRate = ecbObs[ecbOk][0];
-      ecbDate = ecbJson.structure.dimensions.observation[0].values[parseInt(ecbOk)].id;
-    } catch(e) {}
-    var prDs = prJson.data.dataSets[0]; var prSeriesKey = Object.keys(prDs.series)[0];
-    var prObs = prDs.series[prSeriesKey].observations; var prObsKey = Object.keys(prObs)[0];
-    var policyRate = parseFloat(prObs[prObsKey][0]);
-    var prDate = prJson.data.structure.dimensions.observation[0].values[parseInt(prObsKey)].id;
-    var tbilTenors = ['3M','6M','12M']; var gbonTenors = ['3Y','5Y','7Y','10Y'];
-    var allTenors = tbilTenors.concat(gbonTenors); var tenorLabels = ['3M','6M','12M','3Y','5Y','7Y','10Y'];
-    var tenorPromises = allTenors.map(function(t) {
-      var type = tbilTenors.indexOf(t) >= 0 ? 'TBIL' : 'GBON';
-      var url = 'https://data.norges-bank.no/api/data/GOVT_GENERIC_RATES/B.' + t + '.' + type + '.?format=sdmx-json&lastNObservations=1&locale=en';
-      return fetch(url).then(function(r) { return r.json(); }).then(function(json) {
-        var ds = json.data.dataSets[0]; var sk = Object.keys(ds.series)[0];
-        var obs = ds.series[sk].observations; var ok = Object.keys(obs)[0];
-        return { tenor: t, rate: parseFloat(obs[ok][0]) };
-      }).catch(function() { return { tenor: t, rate: null }; });
-    });
-    var tenorResults = await Promise.all(tenorPromises);
-    var rateMap = {}; tenorResults.forEach(function(r) { rateMap[r.tenor] = r.rate; });
-    var usTenorKeys = { '3M':'BC_3MONTH','6M':'BC_6MONTH','12M':'BC_1YEAR','3Y':'BC_3YEAR','5Y':'BC_5YEAR','7Y':'BC_7YEAR','10Y':'BC_10YEAR' };
-    var usRateMap = {};
-    try {
-      var usYear = new Date().getFullYear();
-      var usTreasuryUrl = 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=' + usYear;
-      var usRes = await fetch(CF_PROXY + encodeURIComponent(usTreasuryUrl));
-      var usXmlText = await usRes.text();
-      var usXml = new DOMParser().parseFromString(usXmlText, 'application/xml');
-      var usEntries = usXml.querySelectorAll('entry');
-      var usEntry = usEntries[usEntries.length - 1];
-      if (usEntry) {
-        tenorLabels.forEach(function(t) {
-          var el = usEntry.querySelector(usTenorKeys[t]);
-          var raw = el ? el.textContent : null;
-          usRateMap[t] = (raw && raw !== 'N/A') ? parseFloat(raw) : null;
-        });
-      }
-    } catch(e) {}
+    var snap = await loadSnapshot('interest');
+    var last = function(series) { return (series && series.length) ? series[series.length-1] : null; };
+    var pr = last(snap.policy);
+    var policyRate = pr[1], prDate = pr[0];
+    var fo = last(snap.fed), fedRate = fo ? fo[1] : null, fedDate = fo ? fo[0] : '';
+    var eo = last(snap.ecb), ecbRate = eo ? eo[1] : null, ecbDate = eo ? eo[0] : '';
+    var tenorLabels = ['3M','6M','12M','3Y','5Y','7Y','10Y'];
+    var rateMap = snap.nbYields || {};
+    var usRateMap = (snap.usYields && snap.usYields.rates) || {};
     var cbCompRangeBtns = CB_COMP_RANGES.map(function(r){ return '<button class="cb-comp-range-btn range-btn' + (r.days===1825?' active':'') + '" data-days="'+r.days+'" onclick="renderCbComparison('+r.days+')">'+r.label+'</button>'; }).join('');
     var html = '<div class="rc-grid">'
       + '<div class="rc-card nb" onclick="openPolicyRateChart()"><div class="rc-flag">\uD83C\uDDF3\uD83C\uDDF4</div><div class="rc-label">Styringsrente</div><div class="rc-value">' + policyRate.toFixed(2) + '%</div><div class="rc-sub">' + prDate + ' \u00B7 Tap \u203A</div></div>'
@@ -780,20 +687,6 @@ function parseOecdSeries(json) {
   return Object.keys(obs).map(function(k){ return {date: times[parseInt(k)].id, value: obs[k][0]}; })
     .filter(function(d){ return d.value !== null; })
     .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-}
-
-function parseStat2(data, dim1Key, dim2Key) {
-  var tidCat = data.dimension[dim1Key].category;
-  var tidKeys = Object.keys(tidCat.index).sort(function(a,b){ return tidCat.index[a]-tidCat.index[b]; });
-  var contIdx = data.dimension[dim2Key].category.index;
-  var stride = data.size.slice(1).reduce(function(a,b){return a*b;}, 1);
-  var series = {};
-  Object.keys(contIdx).forEach(function(k){ series[k] = []; });
-  for (var i = 0; i < tidKeys.length; i++) {
-    var base = i * stride;
-    Object.keys(contIdx).forEach(function(k){ series[k].push(data.value[base + contIdx[k]]); });
-  }
-  return { labels: tidKeys, series: series };
 }
 
 function fmtPeriod(s) {
@@ -910,29 +803,13 @@ function renderInflation(N) {
 async function loadInflation() {
   var el = document.getElementById('inflationContent');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><span>Fetching inflation data\u2026</span></div>';
-  var CPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/14700/data?lang=en&outputFormat=json-stat2&valuecodes[Tid]=*&codelist[VareTjenesteGrp]=vs_CoiCop2018Kpi01&valuecodes[ContentsCode]=KpiIndMnd,Tolvmanedersendring&heading=ContentsCode&stub=Tid';
-  var PPI_URL = 'https://data.ssb.no/api/pxwebapi/v2/tables/12462/data?lang=en&outputFormat=json-stat2&valuecodes[ContentsCode]=Indeksnivo,Tolvmanedersendring&valuecodes[Tid]=*&valuecodes[NaringUtenriks]=SNN0&codelist[NaringUtenriks]=vs_NaringPPI1&heading=NaringUtenriks,ContentsCode&stub=Tid';
-  var EU_HICP_URL = 'https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?format=jsondata';
-  var US_CPI_URL = 'https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=178b6a436dc612d9cf52e4fbc2b402ff&units=pc1&file_type=json';
   try {
-    var [ssbCpiRes, ssbPpiRes, usCpiRes, euHicpRes] = await Promise.all([
-      fetch(CPI_URL),
-      fetch(PPI_URL),
-      fetch(CF_PROXY + encodeURIComponent(US_CPI_URL)).catch(function(){return null;}),
-      fetch(EU_HICP_URL).catch(function(){return null;})
-    ]);
-    infCpi = parseStat2(await ssbCpiRes.json(), 'Tid', 'ContentsCode');
-    infPpi = parseStat2(await ssbPpiRes.json(), 'Tid', 'ContentsCode');
-    infUsCpi = [];
-    try { var uj = await usCpiRes.json(); infUsCpi = (uj.observations||[]).filter(function(o){return o.value!=='.';}).map(function(o){return {date:o.date,value:parseFloat(o.value)};}); } catch(e) { infUsCpi = []; }
-    infEuHicp = [];
-    try {
-      var euJson = await euHicpRes.json();
-      var euDs = euJson.dataSets[0]; var euSk = Object.keys(euDs.series)[0];
-      var euObs = euDs.series[euSk].observations;
-      var euDates = euJson.structure.dimensions.observation[0].values;
-      infEuHicp = Object.keys(euObs).map(function(k){return {date:euDates[parseInt(k)].id,value:euObs[k][0]};}).sort(function(a,b){return a.date<b.date?-1:1;});
-    } catch(e) { infEuHicp = []; }
+    var snap = await loadSnapshot('inflation');
+    if (!snap.cpi || !snap.ppi) throw new Error('missing SSB data');
+    infCpi = snap.cpi;
+    infPpi = snap.ppi;
+    infUsCpi = (snap.usCpi || []).map(function(o){return {date:o[0],value:o[1]};});
+    infEuHicp = (snap.euHicp || []).map(function(o){return {date:o[0],value:o[1]};});
     renderInflation(infN);
   } catch(e) {
     el.innerHTML = '<div class="error-msg">Failed to load inflation data: ' + e.message + '</div>';
