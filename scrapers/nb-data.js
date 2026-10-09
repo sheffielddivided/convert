@@ -46,6 +46,15 @@ function parseSdmx(json) {
   return { name, series };
 }
 
+// Eurostat JSON-stat (én serie over tid) -> [[YYYY-MM, value], ...]
+function parseJsonStat(json) {
+  const idx = json.dimension.time.category.index;
+  return Object.keys(idx)
+    .filter((t) => json.value[idx[t]] != null)
+    .sort()
+    .map((t) => [t, json.value[idx[t]]]);
+}
+
 async function fred(seriesId, extra) {
   if (!FRED_KEY) throw new Error("FRED_API_KEY mangler");
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json${extra || ""}`;
@@ -149,13 +158,14 @@ async function buildInflation() {
   const prev = previous("inflation.json");
   const CPI_URL = "https://data.ssb.no/api/pxwebapi/v2/tables/14700/data?lang=en&outputFormat=json-stat2&valuecodes[Tid]=*&codelist[VareTjenesteGrp]=vs_CoiCop2018Kpi01&valuecodes[ContentsCode]=KpiIndMnd,Tolvmanedersendring&heading=ContentsCode&stub=Tid";
   const PPI_URL = "https://data.ssb.no/api/pxwebapi/v2/tables/12462/data?lang=en&outputFormat=json-stat2&valuecodes[ContentsCode]=Indeksnivo,Tolvmanedersendring&valuecodes[Tid]=*&valuecodes[NaringUtenriks]=SNN0&codelist[NaringUtenriks]=vs_NaringPPI1&heading=NaringUtenriks,ContentsCode&stub=Tid";
-  const EU_URL = "https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?format=jsondata";
+  // ECB la ned ICP-datasettet i feb 2026 (siste punkt 2025-12); Eurostat prc_hicp_minr (ECOICOP v2) er etterfølgeren.
+  const EU_URL = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?format=JSON&lang=en&geo=EA&coicop18=TOTAL&unit=RCH_A";
 
   const [cpi, ppi, usCpi, euHicp] = await Promise.all([
     settle("SSB KPI", async () => parseStat2(await getJson(CPI_URL), "Tid", "ContentsCode"), prev.cpi || null),
     settle("SSB PPI", async () => parseStat2(await getJson(PPI_URL), "Tid", "ContentsCode"), prev.ppi || null),
     settle("US CPI", () => fred("CPIAUCSL", "&units=pc1"), prev.usCpi || []),
-    settle("EU HICP", async () => parseSdmx(await getJson(EU_URL)).series, prev.euHicp || [])
+    settle("EU HICP", async () => parseJsonStat(await getJson(EU_URL)), prev.euHicp || [])
   ]);
   write("inflation.json", { cpi, ppi, usCpi, euHicp });
 }
