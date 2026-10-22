@@ -27,6 +27,8 @@ const yearsAgo = (n) => {
 async function getJson(url) {
   const res = await fetch(url, { headers: { "User-Agent": "convert-nb-data/1.0" } });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url.replace(FRED_KEY || "\0", "***")}`);
+  const type = res.headers.get("content-type") || "";
+  if (!type.includes("json")) throw new Error(`forventet JSON, fikk ${type || "ukjent type"} (vedlikeholdsside?) fra ${new URL(url).host}`);
   return res.json();
 }
 
