@@ -16,7 +16,8 @@ const FRED_KEY = process.env.FRED_API_KEY || "";
 const CURRENCIES = ["USD","EUR","GBP","SEK","DKK","CHF","AUD","BRL","CAD","CZK","JPY","PLN","KRW","TRY"];
 const TBIL = ["3M","6M","12M"];
 const GBON = ["3Y","5Y","7Y","10Y"];
-const US_TENOR_KEYS = { "3M":"BC_3MONTH","6M":"BC_6MONTH","12M":"BC_1YEAR","3Y":"BC_3YEAR","5Y":"BC_5YEAR","7Y":"BC_7YEAR","10Y":"BC_10YEAR" };
+const US_TENOR_KEYS = { "3M":"BC_3MONTH","6M":"BC_6MONTH","12M":"BC_1YEAR","3Y":"BC_3YEAR","5Y":"BC_5YEAR","7Y":"BC_7YEAR","10Y":"BC_10YEAR","20Y":"BC_20YEAR","30Y":"BC_30YEAR" };
+const EU_TENORS = ["1Y","2Y","3Y","5Y","7Y","10Y","15Y","20Y","30Y"];
 
 const yearsAgo = (n) => {
   const d = new Date();
@@ -41,6 +42,12 @@ async function fetchWithRetry(url, attempts = 4) {
     }
   }
   throw lastErr;
+}
+
+async function getText(url) {
+  const res = await fetchWithRetry(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${new URL(url).host}`);
+  return res.text();
 }
 
 async function getJson(url) {
@@ -172,7 +179,35 @@ async function buildInterest() {
     return { date: dm ? dm[1] : null, rates };
   }, prev.usYields || null);
 
-  write("interest.json", { policy, fed, ecb, nbYields, usYields });
+  // Euro-kurver (spot, Svensson): ECB sin AAA-kurve for euroområdet og Bundesbank sin kurve for tyske statspapirer.
+  const euYields = await settle("Euro yield curves", async () => {
+    const ecbRates = {}, deRates = {};
+    let ecbDate = null, deDate = null;
+    await Promise.all(EU_TENORS.map(async (t) => {
+      const ecbCsv = await getText(`https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_${t}?lastNObservations=1&format=csvdata`);
+      const [head, row] = ecbCsv.trim().split(/\r?\n/);
+      const cols = head.split(",");
+      const cells = (row || "").split(",");
+      const v = parseFloat(cells[cols.indexOf("OBS_VALUE")]);
+      const d = cells[cols.indexOf("TIME_PERIOD")];
+      if (!Number.isFinite(v)) throw new Error(`ECB ${t}: ingen verdi`);
+      ecbRates[t] = v;
+      if (d && (!ecbDate || d > ecbDate)) ecbDate = d;
+
+      const n = String(parseInt(t, 10)).padStart(2, "0");
+      const deCsv = await getText(`https://api.statistiken.bundesbank.de/rest/data/BBSIS/D.I.ZST.ZI.EUR.S1311.B.A604.R${n}XX.R.A.A._Z._Z.A?lastNObservations=1&format=csv`);
+      const last = deCsv.trim().split(/\r?\n/).filter((l) => /^\d{4}-\d{2}-\d{2};/.test(l)).pop();
+      if (!last) throw new Error(`Bundesbank ${t}: ingen verdi`);
+      const [dd, dv] = last.split(";");
+      const dn = parseFloat(dv.replace(",", "."));
+      if (!Number.isFinite(dn)) throw new Error(`Bundesbank ${t}: ugyldig verdi`);
+      deRates[t] = dn;
+      if (!deDate || dd > deDate) deDate = dd;
+    }));
+    return { ecb: { date: ecbDate, rates: ecbRates }, de: { date: deDate, rates: deRates } };
+  }, prev.euYields || null);
+
+  write("interest.json", { policy, fed, ecb, nbYields, usYields, euYields });
 }
 
 async function buildInflation() {
