@@ -24,8 +24,27 @@ const yearsAgo = (n) => {
   return d.toISOString().slice(0, 10);
 };
 
+// Forsøker på nytt (med økende ventetid) ved forbigående feil: nettverk, 429 og 5xx.
+async function fetchWithRetry(url, attempts = 4) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 2000 * 2 ** (i - 1)));
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": "convert-nb-data/1.0" } });
+      if (res.status === 429 || res.status >= 500) {
+        lastErr = new Error(`HTTP ${res.status} for ${url.replace(FRED_KEY || "\0", "***")}`);
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
 async function getJson(url) {
-  const res = await fetch(url, { headers: { "User-Agent": "convert-nb-data/1.0" } });
+  const res = await fetchWithRetry(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url.replace(FRED_KEY || "\0", "***")}`);
   const type = res.headers.get("content-type") || "";
   if (!type.includes("json")) throw new Error(`forventet JSON, fikk ${type || "ukjent type"} (vedlikeholdsside?) fra ${new URL(url).host}`);
