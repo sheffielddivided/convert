@@ -33,6 +33,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .rc-card.nb{background:linear-gradient(135deg,#003d99,#0066cc);box-shadow:0 4px 16px rgba(0,85,179,0.28)}
 .rc-card.fed{background:linear-gradient(135deg,#7f1d1d,#dc2626);box-shadow:0 4px 16px rgba(220,38,38,0.28)}
 .rc-card.ecb{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);box-shadow:0 4px 16px rgba(29,78,216,0.28)}
+.rc-card.boe{background:linear-gradient(135deg,#3b0764,#7c3aed);box-shadow:0 4px 16px rgba(124,58,237,0.28)}
+.rc-card.riks{background:linear-gradient(135deg,#92400e,#d97706);box-shadow:0 4px 16px rgba(217,119,6,0.28)}
+.rc-grid.five{grid-template-columns:repeat(6,1fr)}
+.rc-grid.five>.rc-card{grid-column:span 2}
+.rc-grid.five>.rc-card:nth-child(n+4){grid-column:span 3}
 .view{display:none;padding:18px 16px;animation:fadeIn .25s ease}
 .view.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -356,6 +361,7 @@ function setRangeButtons(buttons, activeDays) {
       if (currentModalType === 'policyrate') { loadPolicyRateHistorical(days); }
       else if (currentModalType === 'fed') { loadFedHistorical(days); }
       else if (currentModalType === 'ecb') { loadEcbHistorical(days); }
+      else if (CB_SERIES[currentModalType]) { loadCbHistorical(currentModalType, days); }
       else { loadHistorical(currentModalCur, days); }
     });
     container.appendChild(btn);
@@ -398,8 +404,7 @@ async function loadCbComparison(days) {
   try {
     var snap = await loadSnapshot('interest');
     function toObjs(series) { return (series || []).map(function(o){ return {date:o[0], value:o[1]}; }); }
-    var nbData = toObjs(snap.policy), fedData = toObjs(snap.fed), ecbData = toObjs(snap.ecb);
-    cbHistCache = {nb: nbData, fed: fedData, ecb: ecbData};
+    cbHistCache = {nb: toObjs(snap.policy), fed: toObjs(snap.fed), ecb: toObjs(snap.ecb), boe: toObjs(snap.boe), riksbank: toObjs(snap.riksbank)};
     renderCbComparison(days);
   } catch(e) { var s = document.getElementById('cbCompStats'); if(s) s.innerHTML = '<div class="error-msg">Failed to load comparison data</div>'; }
 }
@@ -424,13 +429,12 @@ function renderCbComparison(days) {
     }
     return result;
   }
-  var spM = sp.slice(0,7);
-  var nb = cbHistCache.nb.filter(function(o){return o.date.slice(0,7)>=spM;});
-  var fed = cbHistCache.fed.filter(function(o){return o.date.slice(0,7)>=spM;});
-  var ecb = cbHistCache.ecb.filter(function(o){return o.date.slice(0,7)>=spM;});
-  var nbVals = fwdFill(nb, labels);
-  var fedVals = fwdFill(fed, labels);
-  var ecbVals = fwdFill(ecb, labels);
+  // Hele serien fylles fremover, slik at renten som gjaldt ved periodestart også vises (ECB/BoE/Riksbank lagres som endringspunkter).
+  var nbVals = fwdFill(cbHistCache.nb, labels);
+  var fedVals = fwdFill(cbHistCache.fed, labels);
+  var ecbVals = fwdFill(cbHistCache.ecb, labels);
+  var boeVals = fwdFill(cbHistCache.boe, labels);
+  var rbVals = fwdFill(cbHistCache.riksbank, labels);
   var dispLabels = labels.map(function(l){ return l.slice(0,4)+'-'+l.slice(5,7); });
   var canvas = document.getElementById('cbCompCanvas');
   if (!canvas) return;
@@ -439,7 +443,9 @@ function renderCbComparison(days) {
     data: { labels: dispLabels, datasets: [
       {label:'🇳🇴 NB', data:nbVals, borderColor:'#0055b3', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
       {label:'🇺🇸 Fed', data:fedVals, borderColor:'#dc2626', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
-      {label:'🇪🇺 ECB', data:ecbVals, borderColor:'#16a34a', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true}
+      {label:'🇪🇺 ECB', data:ecbVals, borderColor:'#16a34a', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
+      {label:'🇬🇧 BoE', data:boeVals, borderColor:'#7c3aed', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true},
+      {label:'🇸🇪 Riksbank', data:rbVals, borderColor:'#d97706', backgroundColor:'transparent', borderWidth:2, pointRadius:0, stepped:'before', spanGaps:true}
     ]},
     options: { responsive:true, maintainAspectRatio:false,
       plugins: {
@@ -468,6 +474,46 @@ function openEcbChart() {
   setRangeButtons(RATE_RANGES, 7300);
   openModal();
   loadEcbHistorical(7300);
+}
+
+var CB_SERIES = {
+  boe: {key:'boe', title:'\uD83C\uDDEC\uD83C\uDDE7 Bank of England Bank Rate', color:'#7c3aed', grad:'rgba(124,58,237,0.18)'},
+  riksbank: {key:'riksbank', title:'\uD83C\uDDF8\uD83C\uDDEA Riksbank Policy Rate', color:'#d97706', grad:'rgba(217,119,6,0.18)'}
+};
+
+function openCbChart(type) {
+  currentModalType = type;
+  document.getElementById('modalTitle').textContent = CB_SERIES[type].title;
+  setRangeButtons(RATE_RANGES, 7300);
+  openModal();
+  loadCbHistorical(type, 7300);
+}
+
+// Seriene lagres som endringspunkter: lag én observasjon per måned med gjeldende rente.
+async function loadCbHistorical(type, days) {
+  var cfg = CB_SERIES[type];
+  var canvas = document.getElementById('histChart');
+  var stats = document.getElementById('chartStats');
+  if (histChartInstance) { histChartInstance.destroy(); histChartInstance = null; }
+  stats.innerHTML = '';
+  try {
+    var snap = await loadSnapshot('interest');
+    var series = snap[cfg.key] || [];
+    if (!series.length) throw new Error('no data');
+    var start = new Date(); start.setDate(start.getDate() - days);
+    var d = new Date(Math.max(start, new Date(series[0][0]))); d.setDate(1);
+    var labels = [], values = [], si = 0, last = null, now = new Date();
+    while (d <= now) {
+      var m = d.toISOString().slice(0, 7);
+      while (si < series.length && series[si][0].slice(0, 7) <= m) { last = series[si][1]; si++; }
+      if (last !== null) { labels.push(m); values.push(last); }
+      d.setMonth(d.getMonth() + 1);
+    }
+    histChartInstance = makeRateChart(canvas.getContext('2d'), labels, values, cfg.color, cfg.grad);
+    histChartInstance.data.datasets[0].stepped = 'before';
+    histChartInstance.update();
+    makeRateStats(stats, values);
+  } catch(e) { stats.innerHTML = '<div class="error-msg">Failed to load rate history</div>'; }
 }
 
 function makeRateChart(ctx, labels, values, color, gradColor) {
@@ -637,11 +683,18 @@ async function loadInterest() {
     var usTenorLabels = ['3M','6M','12M','3Y','5Y','7Y','10Y','20Y','30Y'];
     var euTenorLabels = ['1Y','2Y','3Y','5Y','7Y','10Y','15Y','20Y','30Y'];
     var eu = snap.euYields || null;
+    var uk = snap.ukYields || null, se = snap.seYields || null;
+    var ukTenorLabels = ['6M','1Y','2Y','3Y','5Y','7Y','10Y','15Y','20Y','30Y'];
+    var seTenorLabels = ['1M','3M','6M','2Y','5Y','7Y','10Y'];
+    var bo = last(snap.boe), boeRate = bo ? bo[1] : null, boeDate = bo ? bo[0] : '';
+    var ro = last(snap.riksbank), rbRate = ro ? ro[1] : null, rbDate = ro ? ro[0] : '';
     var cbCompRangeBtns = CB_COMP_RANGES.map(function(r){ return '<button class="cb-comp-range-btn range-btn' + (r.days===1825?' active':'') + '" data-days="'+r.days+'" onclick="renderCbComparison('+r.days+')">'+r.label+'</button>'; }).join('');
-    var html = '<div class="rc-grid">'
+    var html = '<div class="rc-grid five">'
       + '<div class="rc-card nb" onclick="openPolicyRateChart()"><div class="rc-flag">\uD83C\uDDF3\uD83C\uDDF4</div><div class="rc-label">Styringsrente</div><div class="rc-value">' + policyRate.toFixed(2) + '%</div><div class="rc-sub">' + prDate + ' \u00B7 Tap \u203A</div></div>'
       + '<div class="rc-card fed" onclick="openFedChart()"><div class="rc-flag">\uD83C\uDDFA\uD83C\uDDF8</div><div class="rc-label">Fed Funds Rate</div><div class="rc-value">' + (fedRate !== null ? fedRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (fedDate || '') + ' \u00B7 Tap \u203A</div></div>'
       + '<div class="rc-card ecb" onclick="openEcbChart()"><div class="rc-flag">\uD83C\uDDEA\uD83C\uDDFA</div><div class="rc-label">ECB Deposit Rate</div><div class="rc-value">' + (ecbRate !== null ? ecbRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (ecbDate || '') + ' \u00B7 Tap \u203A</div></div>'
+      + '<div class="rc-card boe" onclick="openCbChart(\'boe\')"><div class="rc-flag">\uD83C\uDDEC\uD83C\uDDE7</div><div class="rc-label">BoE Bank Rate</div><div class="rc-value">' + (boeRate !== null ? boeRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (boeDate || '') + ' \u00B7 Tap \u203A</div></div>'
+      + '<div class="rc-card riks" onclick="openCbChart(\'riksbank\')"><div class="rc-flag">\uD83C\uDDF8\uD83C\uDDEA</div><div class="rc-label">Riksbank Policy Rate</div><div class="rc-value">' + (rbRate !== null ? rbRate.toFixed(2) + '%' : '\u2014') + '</div><div class="rc-sub">' + (rbDate || '') + ' \u00B7 Tap \u203A</div></div>'
       + '</div>'
       + '<div id="policyPressRelease"></div>'
       + '<div class="section-title">\uD83C\uDF0D Central Bank Policy Rates</div>'
@@ -651,7 +704,11 @@ async function loadInterest() {
       + '<div class="section-title" style="margin-top:16px">&#x1F1F3;&#x1F1F4; Norwegian Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="yieldChart"></canvas></div></div>'
       + '<div class="section-title" style="margin-top:16px">&#x1F1FA;&#x1F1F8; US Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="usYieldChart"></canvas></div></div>'
       + '<div class="section-title" style="margin-top:16px">&#x1F1EA;&#x1F1FA; Euro Government Yield Curves</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="euYieldChart"></canvas></div></div>'
-      + '<div class="rc-sub" style="margin-top:6px">' + (eu ? 'Euro area AAA (ECB) ' + eu.ecb.date + ' \u00B7 Germany (Bundesbank) ' + eu.de.date : 'Euro curve data unavailable') + '</div>';
+      + '<div class="rc-sub" style="margin-top:6px">' + (eu ? 'Euro area AAA (ECB) ' + eu.ecb.date + ' \u00B7 Germany (Bundesbank) ' + eu.de.date : 'Euro curve data unavailable') + '</div>'
+      + '<div class="section-title" style="margin-top:16px">&#x1F1EC;&#x1F1E7; UK Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="ukYieldChart"></canvas></div></div>'
+      + '<div class="rc-sub" style="margin-top:6px">' + (uk ? 'Gilt spot curve (Bank of England) ' + uk.date : 'UK curve data unavailable') + '</div>'
+      + '<div class="section-title" style="margin-top:16px">&#x1F1F8;&#x1F1EA; Swedish Government Yield Curve</div><div class="yield-chart-wrap"><div class="yield-chart-inner"><canvas id="seYieldChart"></canvas></div></div>'
+      + '<div class="rc-sub" style="margin-top:6px">' + (se ? 'T-bills &amp; government bonds (Riksbank) ' + se.date : 'Swedish curve data unavailable') + '</div>';
     container.innerHTML = html;
     var yieldValues = tenorLabels.map(function(t) { return rateMap[t]; });
     var ctx = document.getElementById('yieldChart').getContext('2d');
@@ -685,6 +742,19 @@ async function loadInterest() {
           scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
       });
     }
+    function singleCurve(id, labels, rates, color) {
+      var c = document.getElementById(id).getContext('2d');
+      var g = c.createLinearGradient(0, 0, 0, 260);
+      g.addColorStop(0, color + '33'); g.addColorStop(1, color + '00');
+      new Chart(c, {
+        type: 'line', data: { labels: labels, datasets: [{ data: labels.map(function(t) { return rates[t]; }), borderColor: color, backgroundColor: g, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: color, pointBorderColor: '#0a0f1a', pointBorderWidth: 2, borderWidth: 2.5, spanGaps: true }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(26,32,53,0.92)', titleColor: '#f0f4f8', bodyColor: '#e2e8f0', borderColor: '#3b4a6b', borderWidth: 1, padding: 10, displayColors: false, callbacks: { label: function(c) { return c.parsed.y.toFixed(3) + '%'; } } } },
+          scales: { x: { ticks: { color: '#64748b', font: { size: 12, weight: '600' } }, grid: { color: 'rgba(221,227,237,0.9)' } }, y: { ticks: { color: '#64748b', font: { size: 11 }, callback: function(v) { return v.toFixed(2) + '%'; } }, grid: { color: 'rgba(221,227,237,0.9)' } } } }
+      });
+    }
+    if (uk) singleCurve('ukYieldChart', ukTenorLabels, uk.rates, '#7c3aed');
+    if (se) singleCurve('seYieldChart', seTenorLabels, se.rates, '#d97706');
     loadPolicyPressRelease();
     cbHistCache = null;
     loadCbComparison(1825);
@@ -693,7 +763,7 @@ async function loadInterest() {
 
 var cpiChartInstance = null, ppiChartInstance = null, infCompChartInstance = null;
 var infCpi = null, infPpi = null, infN = 60;
-var infUsCpi = null, infEuHicp = null;
+var infUsCpi = null, infEuHicp = null, infUkCpi = null, infSeHicp = null;
 var INF_RANGES = [{label:'1Y',n:12},{label:'5Y',n:60},{label:'10Y',n:120},{label:'20Y',n:240},{label:'30Y',n:360}];
 
 function parseOecdSeries(json) {
@@ -745,6 +815,8 @@ function renderInflation(N) {
   var latestUsCpiDate = (infUsCpi && infUsCpi.length) ? infUsCpi[infUsCpi.length-1].date.slice(0,7) : '';
   var latestEuHicp = (infEuHicp && infEuHicp.length) ? infEuHicp[infEuHicp.length-1].value : null;
   var latestEuDate = (infEuHicp && infEuHicp.length) ? infEuHicp[infEuHicp.length-1].date.slice(0,7) : '';
+  function lastOf(arr) { return (arr && arr.length) ? arr[arr.length-1] : null; }
+  var ukLast = lastOf(infUkCpi), seLast = lastOf(infSeHicp);
   var latestNbDate = infCpi.labels[infCpi.labels.length-1].slice(0,4) + '-' + infCpi.labels[infCpi.labels.length-1].slice(5,7);
   function colVal(v) { return (v != null && v < 0) ? 'var(--red)' : 'var(--accent)'; }
 
@@ -754,10 +826,12 @@ function renderInflation(N) {
     }).join('') + '</div>';
 
   el.innerHTML =
-    '<div class="rc-grid">' +
+    '<div class="rc-grid five">' +
       '<div class="rc-card nb"><div class="rc-flag">\ud83c\uddf3\ud83c\uddf4</div><div class="rc-label">Norway CPI</div><div class="rc-value">' + (latestCpi != null ? latestCpi.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + latestNbDate + ' \u00b7 12m change</div></div>' +
       '<div class="rc-card fed"><div class="rc-flag">\ud83c\uddfa\ud83c\uddf8</div><div class="rc-label">US CPI</div><div class="rc-value">' + (latestUsCpi != null ? latestUsCpi.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (latestUsCpiDate || '') + ' \u00b7 12m change</div></div>' +
       '<div class="rc-card ecb"><div class="rc-flag">\ud83c\uddea\ud83c\uddfa</div><div class="rc-label">EU HICP</div><div class="rc-value">' + (latestEuHicp != null ? latestEuHicp.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (latestEuDate || '') + ' \u00b7 12m change</div></div>' +
+      '<div class="rc-card boe"><div class="rc-flag">\ud83c\uddec\ud83c\udde7</div><div class="rc-label">UK CPI</div><div class="rc-value">' + (ukLast ? ukLast.value.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (ukLast ? ukLast.date.slice(0,7) : '') + ' \u00b7 12m change</div></div>' +
+      '<div class="rc-card riks"><div class="rc-flag">\ud83c\uddf8\ud83c\uddea</div><div class="rc-label">Sweden HICP</div><div class="rc-value">' + (seLast ? seLast.value.toFixed(1) + '%' : '\u2014') + '</div><div class="rc-sub">' + (seLast ? seLast.date.slice(0,7) : '') + ' \u00b7 12m change</div></div>' +
     '</div>' +
     rangeBtns +
     '<div class="section-title">\ud83c\udf0d CPI Comparison</div>' +
@@ -794,6 +868,8 @@ function renderInflation(N) {
   var nbVals = fwdFillComp(nbMonthly, compLabels);
   var usVals = fwdFillComp((infUsCpi||[]).filter(function(o){return o.date>=sp;}), compLabels);
   var euVals = fwdFillComp((infEuHicp||[]).filter(function(o){return o.date>=sp;}), compLabels);
+  var ukVals = fwdFillComp((infUkCpi||[]).filter(function(o){return o.date>=sp;}), compLabels);
+  var seVals = fwdFillComp((infSeHicp||[]).filter(function(o){return o.date>=sp;}), compLabels);
   var dispLabels = compLabels.map(function(l){ return l.slice(0,4)+'-'+l.slice(5,7); });
 
   var compCanvas = document.getElementById('infCompCanvas');
@@ -802,7 +878,9 @@ function renderInflation(N) {
     data: { labels: dispLabels, datasets: [
       {label:'\ud83c\uddf3\ud83c\uddf4 Norway', data:nbVals, borderColor:'#0055b3', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
       {label:'\ud83c\uddfa\ud83c\uddf8 US', data:usVals, borderColor:'#dc2626', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
-      {label:'\ud83c\uddea\ud83c\uddfa EU', data:euVals, borderColor:'#1d4ed8', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true}
+      {label:'\ud83c\uddea\ud83c\uddfa EU', data:euVals, borderColor:'#16a34a', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
+      {label:'\ud83c\uddec\ud83c\udde7 UK', data:ukVals, borderColor:'#7c3aed', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true},
+      {label:'\ud83c\uddf8\ud83c\uddea Sweden', data:seVals, borderColor:'#d97706', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3, spanGaps:true}
     ]},
     options: { responsive:true, maintainAspectRatio:false,
       plugins: {
@@ -827,6 +905,8 @@ async function loadInflation() {
     infPpi = snap.ppi;
     infUsCpi = (snap.usCpi || []).map(function(o){return {date:o[0],value:o[1]};});
     infEuHicp = (snap.euHicp || []).map(function(o){return {date:o[0],value:o[1]};});
+    infUkCpi = (snap.ukCpi || []).map(function(o){return {date:o[0],value:o[1]};});
+    infSeHicp = (snap.seHicp || []).map(function(o){return {date:o[0],value:o[1]};});
     renderInflation(infN);
   } catch(e) {
     el.innerHTML = '<div class="error-msg">Failed to load inflation data: ' + e.message + '</div>';
