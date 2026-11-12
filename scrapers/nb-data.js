@@ -9,6 +9,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const zlib = require("zlib");
 
 const OUT_DIR = path.join(__dirname, "..", "data", "nb");
 const FRED_KEY = process.env.FRED_API_KEY || "";
@@ -18,6 +19,9 @@ const TBIL = ["3M","6M","12M"];
 const GBON = ["3Y","5Y","7Y","10Y"];
 const US_TENOR_KEYS = { "3M":"BC_3MONTH","6M":"BC_6MONTH","12M":"BC_1YEAR","3Y":"BC_3YEAR","5Y":"BC_5YEAR","7Y":"BC_7YEAR","10Y":"BC_10YEAR","20Y":"BC_20YEAR","30Y":"BC_30YEAR" };
 const EU_TENORS = ["1Y","2Y","3Y","5Y","7Y","10Y","15Y","20Y","30Y"];
+const UK_TENORS = ["6M","1Y","2Y","3Y","5Y","7Y","10Y","15Y","20Y","30Y"];
+// Riksbank SWEA: gruppe 6 = statsskuldväxlar, gruppe 7 = statsobligationer
+const SE_SERIES = { SETB1MBENCHC:"1M", SETB3MBENCH:"3M", SETB6MBENCH:"6M", SEGVB2YC:"2Y", SEGVB5YC:"5Y", SEGVB7YC:"7Y", SEGVB10YC:"10Y" };
 
 const yearsAgo = (n) => {
   const d = new Date();
@@ -48,6 +52,12 @@ async function getText(url) {
   const res = await fetchWithRetry(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${new URL(url).host}`);
   return res.text();
+}
+
+async function getBuffer(url) {
+  const res = await fetchWithRetry(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${new URL(url).host}`);
+  return Buffer.from(await res.arrayBuffer());
 }
 
 async function getJson(url) {
@@ -104,6 +114,87 @@ function parseStat2(data, dim1Key, dim2Key) {
     Object.keys(contIdx).forEach((k) => series[k].push(data.value[i * stride + contIdx[k]]));
   });
   return { labels: tidKeys, series };
+}
+
+// Minimal zip-leser (sentralkatalog + deflate) slik at vi slipper avhengigheter for BoE sine xlsx-filer.
+function unzip(buf) {
+  let eocd = buf.length - 22;
+  while (eocd >= 0 && buf.readUInt32LE(eocd) !== 0x06054b50) eocd--;
+  if (eocd < 0) throw new Error("ugyldig zip");
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const files = {};
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error("ugyldig zip-katalog");
+    const method = buf.readUInt16LE(p + 10);
+    const csize = buf.readUInt32LE(p + 20);
+    const nlen = buf.readUInt16LE(p + 28), xlen = buf.readUInt16LE(p + 30), clen = buf.readUInt16LE(p + 32);
+    const local = buf.readUInt32LE(p + 42);
+    const name = buf.toString("utf8", p + 46, p + 46 + nlen);
+    const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+    const data = buf.subarray(start, start + csize);
+    files[name] = () => (method === 0 ? data : zlib.inflateRawSync(data));
+    p += 46 + nlen + xlen + clen;
+  }
+  return files;
+}
+
+// Siste rad i BoE sin "4. spot curve"-fane -> { date, rates: { "1Y": .., ... } }
+function parseBoeSpotCurve(zipBuf) {
+  const outer = unzip(zipBuf);
+  const xName = Object.keys(outer).find((n) => /nominal daily/i.test(n));
+  if (!xName) throw new Error("fant ikke GLC Nominal i zip");
+  const x = unzip(outer[xName]());
+  const wb = x["xl/workbook.xml"]().toString("utf8");
+  const rels = x["xl/_rels/workbook.xml.rels"]().toString("utf8");
+  const sheet = wb.match(/<sheet [^>]*name="4\. spot curve"[^>]*>/);
+  const rid = sheet && sheet[0].match(/r:id="([^"]+)"/)[1];
+  const target = rid && (rels.match(new RegExp(`Id="${rid}"[^>]*Target="([^"]+)"`)) || rels.match(new RegExp(`Target="([^"]+)"[^>]*Id="${rid}"`)) || [])[1];
+  if (!target) throw new Error("fant ikke spot curve-fanen");
+  const xml = x["xl/" + target.replace(/^\/?xl\//, "")]().toString("utf8");
+  const colToNum = (c) => c.split("").reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0);
+  const rows = (xml.match(/<row [^>]*>[\s\S]*?<\/row>/g) || []).map((r) => {
+    const cells = {};
+    for (const m of r.matchAll(/<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>(?:<f[^>]*\/>|<f[^>]*>[\s\S]*?<\/f>)?(?:<v>([^<]*)<\/v>)?<\/c>)/g)) {
+      if (m[3] !== undefined && !/t="(s|e|str)"/.test(m[2])) cells[colToNum(m[1])] = parseFloat(m[3]);
+    }
+    return cells;
+  });
+  // Rad med løpetider: kolonne 1 tom, kolonne 2 = 0.5, 3 = 1, ...
+  const header = rows.find((c) => c[2] === 0.5 && c[3] === 1);
+  if (!header) throw new Error("fant ikke løpetidsraden");
+  const dataRows = rows.filter((c) => c !== header && c[1] > 30000 && Object.keys(c).length > 10);
+  const last = dataRows[dataRows.length - 1];
+  if (!last) throw new Error("ingen kurvedata denne måneden ennå");
+  const date = new Date(Date.UTC(1899, 11, 30) + last[1] * 86400000).toISOString().slice(0, 10);
+  const rates = {};
+  for (const t of UK_TENORS) {
+    const years = t.endsWith("M") ? parseInt(t, 10) / 12 : parseInt(t, 10);
+    const col = Object.keys(header).find((k) => header[k] === years);
+    const v = col ? last[col] : undefined;
+    rates[t] = Number.isFinite(v) ? Math.round(v * 1000) / 1000 : null;
+  }
+  return { date, rates };
+}
+
+// BoE IADB CSV (DATE,KODE) -> [[YYYY-MM-DD, value], ...]
+function parseIadbCsv(csv) {
+  const mon = { Jan:"01",Feb:"02",Mar:"03",Apr:"04",May:"05",Jun:"06",Jul:"07",Aug:"08",Sep:"09",Oct:"10",Nov:"11",Dec:"12" };
+  const out = [];
+  for (const line of csv.trim().split(/\r?\n/).slice(1)) {
+    const m = line.match(/^(\d{2}) (\w{3}) (\d{4}),([-\d.]+)/);
+    if (m && mon[m[2]]) out.push([`${m[3]}-${mon[m[2]]}-${m[1]}`, parseFloat(m[4])]);
+  }
+  if (!out.length) throw new Error("ingen rader fra BoE (blokkert?)");
+  return out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+}
+
+// Daglig serie -> kun endringspunkter + siste observasjon (som ECB-serien), for å holde JSON-filen liten.
+function changePoints(series) {
+  const out = series.filter((o, i) => i === 0 || o[1] !== series[i - 1][1]);
+  const last = series[series.length - 1];
+  if (last && out[out.length - 1] !== last) out.push(last);
+  return out;
 }
 
 function write(name, obj) {
@@ -207,7 +298,38 @@ async function buildInterest() {
     return { ecb: { date: ecbDate, rates: ecbRates }, de: { date: deDate, rates: deRates } };
   }, prev.euYields || null);
 
-  write("interest.json", { policy, fed, ecb, nbYields, usYields, euYields });
+  const boeDate = (() => { const d = new Date(far); return `${String(d.getUTCDate()).padStart(2, "0")}/${d.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })}/${d.getUTCFullYear()}`; })();
+  const boe = await settle("BoE Bank Rate", async () =>
+    changePoints(parseIadbCsv(await getText(`https://www.bankofengland.co.uk/boeapps/database/_iadb-fromshowcolumns.asp?csv.x=yes&Datefrom=${boeDate}&Dateto=now&SeriesCodes=IUDBEDR&CSVF=TN&UsingCodes=Y&VPD=Y&VFD=N`))),
+    prev.boe || []);
+
+  const riksbank = await settle("Riksbank styrränta", async () => {
+    const json = await getJson(`https://api.riksbank.se/swea/v1/Observations/SECBREPOEFF/${far}`);
+    const s = json.filter((o) => o.value != null).map((o) => [o.date, o.value]);
+    if (!s.length) throw new Error("ingen observasjoner");
+    return changePoints(s);
+  }, prev.riksbank || []);
+
+  const ukYields = await settle("UK gilt curve", async () =>
+    parseBoeSpotCurve(await getBuffer("https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/latest-yield-curve-data.zip")),
+    prev.ukYields || null);
+
+  const seYields = await settle("SE government curve", async () => {
+    const rates = {};
+    let date = null;
+    for (const g of [6, 7]) {
+      for (const o of await getJson(`https://api.riksbank.se/swea/v1/Observations/Latest/ByGroup/${g}`)) {
+        const t = SE_SERIES[o.seriesId];
+        if (!t || o.value == null) continue;
+        rates[t] = o.value;
+        if (!date || o.date > date) date = o.date;
+      }
+    }
+    if (Object.keys(rates).length < 4) throw new Error("for få løpetider");
+    return { date, rates };
+  }, prev.seYields || null);
+
+  write("interest.json", { policy, fed, ecb, boe, riksbank, nbYields, usYields, euYields, ukYields, seYields });
 }
 
 async function buildInflation() {
@@ -217,13 +339,28 @@ async function buildInflation() {
   // ECB la ned ICP-datasettet i feb 2026 (siste punkt 2025-12); Eurostat prc_hicp_minr (ECOICOP v2) er etterfølgeren.
   const EU_URL = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?format=JSON&lang=en&geo=EA&coicop18=TOTAL&unit=RCH_A";
 
-  const [cpi, ppi, usCpi, euHicp] = await Promise.all([
+  const SE_URL = EU_URL.replace("geo=EA", "geo=SE");
+  const UK_URL = "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/mm23/data";
+  const MONTHS = { JAN:"01",FEB:"02",MAR:"03",APR:"04",MAY:"05",JUN:"06",JUL:"07",AUG:"08",SEP:"09",OCT:"10",NOV:"11",DEC:"12" };
+
+  const [cpi, ppi, usCpi, euHicp, ukCpi, seHicp] = await Promise.all([
     settle("SSB KPI", async () => parseStat2(await getJson(CPI_URL), "Tid", "ContentsCode"), prev.cpi || null),
     settle("SSB PPI", async () => parseStat2(await getJson(PPI_URL), "Tid", "ContentsCode"), prev.ppi || null),
     settle("US CPI", () => fred("CPIAUCSL", "&units=pc1"), prev.usCpi || []),
-    settle("EU HICP", async () => parseJsonStat(await getJson(EU_URL)), prev.euHicp || [])
+    settle("EU HICP", async () => parseJsonStat(await getJson(EU_URL)), prev.euHicp || []),
+    // ONS D7G7 = CPI 12-månedersendring (UK sin HICP)
+    settle("UK CPI", async () => {
+      const json = await getJson(UK_URL);
+      const s = (json.months || [])
+        .map((o) => { const m = String(o.date).match(/^(\d{4}) ([A-Z]{3})$/); return m && MONTHS[m[2]] ? [`${m[1]}-${MONTHS[m[2]]}`, parseFloat(o.value)] : null; })
+        .filter((o) => o && Number.isFinite(o[1]))
+        .sort((a, b) => (a[0] < b[0] ? -1 : 1));
+      if (!s.length) throw new Error("ingen månedsdata");
+      return s;
+    }, prev.ukCpi || []),
+    settle("SE HICP", async () => parseJsonStat(await getJson(SE_URL)), prev.seHicp || [])
   ]);
-  write("inflation.json", { cpi, ppi, usCpi, euHicp });
+  write("inflation.json", { cpi, ppi, usCpi, euHicp, ukCpi, seHicp });
 }
 
 (async () => {
