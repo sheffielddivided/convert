@@ -6,7 +6,7 @@
  *      (or paste into Cloudflare Dashboard → Workers → Quick edit)
  *   2. Set the API key as a secret (keeps it out of source code):
  *      npx wrangler secret put CH_API_KEY
- *      (enter: adb28fbf-d4ef-4a13-8202-48a8bd141a33)
+ *      (enter your Companies House API key when prompted)
  *   3. Copy the worker URL and set CH_PROXY in companies-house.html
  *
  * The worker forwards any path+query to the Companies House API,
